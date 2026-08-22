@@ -1,0 +1,1461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rally</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,ital@9..144,500;9..144,600;9..144,700;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper: #EFEDE5;
+    --paper-raised: #F8F6F0;
+    --ink: #21261F;
+    --ink-soft: #6A6F63;
+    --ink-faint: #A6A99A;
+    --line: #DAD5C6;
+    --line-strong: #C7C1AE;
+    --task: #9C5B3C;
+    --task-soft: #F0DDCE;
+    --note: #3F6259;
+    --note-soft: #DCE7E1;
+    --gold: #B98A2E;
+    --gold-soft: #F1E3C2;
+    --danger: #A6392F;
+    --radius: 3px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', sans-serif;
+    min-height: 100vh;
+  }
+  ::selection{ background: var(--gold-soft); }
+  .app{
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 40px 28px 80px;
+  }
+
+  /* ---------- Header ---------- */
+  header{
+    display:flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-bottom: 1px solid var(--line-strong);
+    padding-bottom: 18px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .brand h1{
+    font-family:'Fraunces', serif;
+    font-weight: 600;
+    font-size: 34px;
+    letter-spacing: -0.01em;
+  }
+  .brand p{
+    font-size: 12.5px;
+    color: var(--ink-soft);
+    margin-top: 4px;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .focus-toggle{
+    display:flex; align-items:center; gap:10px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-soft);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor:pointer;
+    user-select:none;
+  }
+  .switch{
+    width: 38px; height: 20px;
+    border-radius: 20px;
+    background: var(--line-strong);
+    position: relative;
+    transition: background .2s ease;
+    flex-shrink:0;
+  }
+  .switch::after{
+    content:'';
+    position:absolute;
+    top:2px; left:2px;
+    width:16px; height:16px;
+    border-radius:50%;
+    background: var(--paper-raised);
+    transition: transform .2s ease;
+    box-shadow: 0 1px 2px rgba(0,0,0,.2);
+  }
+  .switch.on{ background: var(--gold); }
+  .switch.on::after{ transform: translateX(18px); }
+
+  /* ---------- Layout ---------- */
+  .layout{
+    display:grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 26px;
+    align-items:start;
+  }
+  .layout.focused{ grid-template-columns: 1fr; max-width: 560px; margin: 0 auto; }
+  .panel{
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 22px;
+  }
+
+  /* ---------- Calendar ---------- */
+  .cal-nav{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom: 16px;
+  }
+  .cal-nav .month-label{
+    font-family:'Fraunces', serif;
+    font-weight: 600;
+    font-size: 19px;
+  }
+  .cal-nav button{
+    background:none; border: 1px solid var(--line-strong);
+    width: 28px; height: 28px;
+    border-radius: var(--radius);
+    color: var(--ink);
+    cursor:pointer;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    line-height:1;
+  }
+  .cal-nav button:hover{ background: var(--paper); }
+  .cal-nav-btns{ display:flex; gap:6px; }
+  .weekdays, .daygrid{
+    display:grid;
+    grid-template-columns: repeat(7, 1fr);
+  }
+  .weekdays div{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    color: var(--ink-faint);
+    text-align:center;
+    padding-bottom: 8px;
+    letter-spacing: 0.05em;
+  }
+  .daycell{
+    aspect-ratio: 1;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-start;
+    padding-top: 6px;
+    gap: 4px;
+    cursor:pointer;
+    position:relative;
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--ink);
+    transition: background .15s ease, border-color .15s ease;
+  }
+  .daycell:hover{ background: var(--paper); }
+  .daycell.outside{ color: var(--ink-faint); }
+  .daycell.today{ border-color: var(--gold); }
+  .daycell.today .num{ color: var(--gold); font-weight:600; }
+  .daycell.selected{ background: var(--ink); border-color: var(--ink); }
+  .daycell.selected .num{ color: var(--paper); }
+  .dots{ display:flex; gap:3px; }
+  .dot{ width:5px; height:5px; border-radius:50%; }
+  .dot.note{ background: var(--note); }
+  .dot.task{ background: var(--task); }
+  .dot.chore{ background: var(--gold); }
+  .daycell.selected .dot.note{ background: var(--note-soft); }
+  .daycell.selected .dot.task{ background: var(--task-soft); }
+  .daycell.selected .dot.chore{ background: var(--gold-soft); }
+
+  /* ---------- Side panel ---------- */
+  .side-date{
+    font-family:'Fraunces', serif;
+    font-weight: 600;
+    font-size: 21px;
+    margin-bottom: 4px;
+  }
+  .side-sub{
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-bottom: 18px;
+    font-family:'IBM Plex Mono', monospace;
+  }
+  .entry-btns{
+    display:flex; gap: 10px;
+    margin-bottom: 18px;
+  }
+  .entry-btns button{
+    flex:1;
+    padding: 11px 10px;
+    border-radius: var(--radius);
+    border: 1px solid var(--line-strong);
+    background: var(--paper);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 500;
+    font-size: 13px;
+    cursor: pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap: 7px;
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+  .entry-btns button:hover{ box-shadow: 0 2px 0 var(--line-strong); transform: translateY(-1px); }
+  .entry-btns button:active{ transform: translateY(0); box-shadow:none; }
+  #btnNote{ color: var(--note); border-color: var(--note-soft); }
+  #btnTask{ color: var(--task); border-color: var(--task-soft); }
+  .dotmark{ width:7px; height:7px; border-radius:50%; }
+  #btnNote .dotmark{ background: var(--note); }
+  #btnTask .dotmark{ background: var(--task); }
+
+  .quick-form{
+    display:none;
+    flex-direction:column;
+    gap: 10px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 18px;
+  }
+  .quick-form.open{ display:flex; }
+  .quick-form textarea{
+    resize: vertical;
+    min-height: 54px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13.5px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius);
+    padding: 8px 10px;
+    background: var(--paper-raised);
+    color: var(--ink);
+  }
+  .quick-form textarea:focus, .quick-form input:focus{ outline: 1.5px solid var(--gold); }
+  .quick-form .time-row{ display:flex; align-items:center; gap: 8px; }
+  .quick-form .time-row label{ font-size:12px; color: var(--ink-soft); font-family:'IBM Plex Mono', monospace; }
+  .quick-form input[type="time"]{
+    font-family: 'IBM Plex Mono', monospace;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius);
+    padding: 5px 8px;
+    background: var(--paper-raised);
+    color: var(--ink);
+  }
+  .quick-form .form-actions{ display:flex; justify-content:flex-end; gap: 8px; }
+  .quick-form .form-actions button{
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-weight: 500;
+    font-size: 12.5px;
+    padding: 8px 16px;
+    border-radius: var(--radius);
+    cursor:pointer;
+    border: 1px solid var(--line-strong);
+    background: var(--paper-raised);
+    color: var(--ink);
+    transition: background .15s ease, color .15s ease, border-color .15s ease, opacity .15s ease;
+  }
+  .quick-form .form-actions button.save-btn{
+    background: var(--ink);
+    color: var(--paper-raised);
+    border-color: var(--ink);
+    font-weight: 600;
+  }
+  .quick-form .form-actions button.save-btn:hover{ background: #14180F; }
+  .quick-form .form-actions button.save-btn.disabled{
+    background: var(--line);
+    color: var(--ink-faint);
+    border-color: var(--line);
+    cursor: not-allowed;
+    font-weight: 500;
+  }
+  #noteForm .save-btn:not(.disabled){ background: var(--note); border-color: var(--note); }
+  #noteForm .save-btn:not(.disabled):hover{ background: #324F47; }
+  #taskForm .save-btn:not(.disabled){ background: var(--task); border-color: var(--task); }
+  #taskForm .save-btn:not(.disabled):hover{ background: #82492F; }
+  .hint{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    color: var(--ink-faint);
+    margin-right: auto;
+    align-self: center;
+  }
+
+  /* ---------- Agenda list ---------- */
+  .agenda-header{
+    display:flex; justify-content:space-between; align-items:baseline;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--line);
+  }
+  .agenda-header span{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+  }
+  .agenda-list{ display:flex; flex-direction:column; gap: 8px; }
+  .entry{
+    display:flex;
+    align-items:flex-start;
+    gap: 10px;
+    padding: 10px 10px;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    background: var(--paper);
+  }
+  .entry.done{ opacity: 0.5; }
+  .entry .marker{
+    width: 16px; height: 16px;
+    flex-shrink:0;
+    margin-top: 1px;
+    border-radius: 4px;
+    border: 1.5px solid var(--task);
+    cursor: pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .entry .marker.checked{ background: var(--task); }
+  .entry .marker.checked::after{ content:'✓'; color: var(--paper-raised); font-size: 11px; line-height:1; }
+  .entry .marker.note-marker{
+    border-radius: 50%;
+    border-color: var(--note);
+    cursor: default;
+  }
+  .entry .marker.note-marker::after{ content:''; width:6px; height:6px; border-radius:50%; background: var(--note); }
+  .entry-body{ flex:1; min-width:0; }
+  .entry-text{ font-size: 13.5px; line-height:1.45; word-break: break-word; }
+  .entry.done .entry-text{ text-decoration: line-through; }
+  .entry-meta{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    color: var(--ink-soft);
+    margin-top: 3px;
+    display:flex; gap:8px;
+  }
+  .entry-meta .overdue{ color: var(--danger); }
+  .entry-del{
+    background:none; border:none; cursor:pointer;
+    color: var(--ink-faint);
+    font-size: 15px;
+    line-height:1;
+    padding: 2px 4px;
+    flex-shrink:0;
+  }
+  .entry-del:hover{ color: var(--danger); }
+  .empty-state{
+    font-size: 12.5px;
+    color: var(--ink-faint);
+    font-style: italic;
+    padding: 14px 4px;
+  }
+
+  /* ---------- Focus mode agenda (all upcoming) ---------- */
+  .focus-progress{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    margin-bottom: 4px;
+  }
+  .group-label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--danger);
+    margin: 4px 0 6px;
+  }
+  .group-label.upcoming{ color: var(--ink-soft); margin-top: 16px; }
+  .move-today{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--gold);
+    background:none;
+    border: 1px solid var(--gold-soft);
+    border-radius: var(--radius);
+    padding: 3px 7px;
+    cursor: pointer;
+    flex-shrink:0;
+    align-self:center;
+  }
+  .move-today:hover{ background: var(--gold-soft); }
+  @keyframes riseIn{ from{ opacity:0; transform: translateY(3px);} to{ opacity:1; transform: translateY(0);} }
+  .entry{ animation: riseIn .18s ease; }
+
+  /* ---------- Chore marker ---------- */
+  .entry .marker.chore-marker{ border-color: var(--gold); }
+  .entry .marker.chore-marker.checked{ background: var(--gold); }
+  .entry-meta .carried{ color: var(--danger); }
+  .entry-meta .chore-tag{ color: var(--gold); }
+
+  /* ---------- Tabs ---------- */
+  .tabbar{
+    display:flex; gap: 26px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 26px;
+  }
+  .tabbar button{
+    background:none; border:none;
+    padding: 0 0 10px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    cursor:pointer;
+    position: relative;
+  }
+  .tabbar button.active{ color: var(--ink); }
+  .tabbar button.active::after{
+    content:''; position:absolute; left:0; right:0; bottom:-1px; height:2px; background: var(--gold);
+  }
+
+  /* ---------- Todo view ---------- */
+  .todo-view{ display:none; }
+  .todo-topbar{
+    display:flex; justify-content:space-between; align-items:flex-end;
+    margin-bottom: 20px; gap: 16px; flex-wrap: wrap;
+  }
+  .share-btn{
+    font-family:'IBM Plex Sans', sans-serif;
+    font-weight: 600;
+    font-size: 12.5px;
+    padding: 9px 16px;
+    border-radius: var(--radius);
+    border: 1px solid var(--ink);
+    background: var(--ink);
+    color: var(--paper-raised);
+    cursor:pointer;
+    display:flex; align-items:center; gap:7px;
+  }
+  .share-btn:hover{ background: #14180F; }
+  .todo-section{ margin-bottom: 20px; }
+  .todo-section-header{
+    display:flex; justify-content:space-between; align-items:baseline;
+    margin-bottom: 12px;
+  }
+  .todo-section-header h2{
+    font-family:'Fraunces', serif;
+    font-weight: 600;
+    font-size: 17px;
+  }
+  .todo-section-header .section-count{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-soft);
+  }
+  .section-hint{
+    font-size: 11px;
+    color: var(--ink-faint);
+    font-style: italic;
+    margin: -6px 0 12px;
+  }
+  .inline-add{
+    display:flex; gap: 8px;
+    margin-bottom: 14px;
+  }
+  .inline-add input[type="text"]{
+    flex:1;
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size: 13.5px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius);
+    padding: 9px 11px;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  .inline-add input[type="time"]{
+    font-family:'IBM Plex Mono', monospace;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius);
+    padding: 9px 8px;
+    background: var(--paper);
+    color: var(--ink);
+    width: 108px;
+  }
+  .inline-add input:focus{ outline: 1.5px solid var(--gold); }
+  .inline-add button{
+    font-family:'IBM Plex Sans', sans-serif;
+    font-weight: 600;
+    font-size: 12.5px;
+    padding: 0 16px;
+    border-radius: var(--radius);
+    border: 1px solid var(--line-strong);
+    background: var(--line);
+    color: var(--ink-faint);
+    cursor: not-allowed;
+    transition: background .15s ease, color .15s ease, border-color .15s ease;
+  }
+  .inline-add button.enabled{
+    background: var(--ink); color: var(--paper-raised); border-color: var(--ink); cursor:pointer;
+  }
+  .inline-add.chore-add button.enabled{ background: var(--gold); border-color: var(--gold); color: var(--ink); }
+  .inline-add.note-add button.enabled{ background: var(--note); border-color: var(--note); }
+
+  /* Reschedule popover (reuses .quick-form) */
+  .reschedule-form .time-row{ display:flex; align-items:center; gap:8px; }
+  .reschedule-form label{ font-size:12px; color: var(--ink-soft); font-family:'IBM Plex Mono', monospace; }
+  .reschedule-form input{
+    font-family:'IBM Plex Mono', monospace;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius);
+    padding: 6px 8px;
+    background: var(--paper-raised);
+    color: var(--ink);
+  }
+
+  /* Swipe */
+  .entry[data-swipeable="1"]{ touch-action: pan-y; will-change: transform; }
+
+  /* Notes list in todo view */
+  .note-row{
+    display:flex; align-items:flex-start; gap:10px;
+    padding: 10px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--paper);
+    margin-bottom: 8px; animation: riseIn .18s ease;
+  }
+  .note-row .marker.note-marker{ width:16px; height:16px; flex-shrink:0; margin-top:1px; border-radius:50%; border:1.5px solid var(--note); display:flex; align-items:center; justify-content:center; }
+  .note-row .marker.note-marker::after{ content:''; width:6px; height:6px; border-radius:50%; background: var(--note); }
+  .show-all-link{
+    background:none; border:none; cursor:pointer;
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-soft);
+    text-decoration: underline;
+    padding: 4px 0;
+  }
+  .filter-row{ margin-bottom: 12px; }
+  .filter-row input{
+    width:100%;
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size: 12.5px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius);
+    padding: 7px 10px;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  .filter-row input:focus{ outline: 1.5px solid var(--gold); }
+
+  /* ---------- Share modal ---------- */
+  .modal-overlay{
+    display:none;
+    position: fixed; inset:0;
+    background: rgba(33,38,31,0.45);
+    align-items:center; justify-content:center;
+    z-index: 100;
+    padding: 20px;
+  }
+  .modal-overlay.open{ display:flex; }
+  .modal-card{
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 22px;
+    max-width: 440px;
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  .modal-card h3{
+    font-family:'Fraunces', serif; font-weight:600; font-size: 18px; margin-bottom: 4px;
+  }
+  .modal-card .modal-sub{
+    font-size: 12px; color: var(--ink-soft); margin-bottom: 14px; font-family:'IBM Plex Mono', monospace;
+  }
+  .modal-card textarea{
+    width:100%; min-height: 220px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    line-height:1.5;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius);
+    padding: 10px;
+    background: var(--paper);
+    color: var(--ink);
+    margin-bottom: 14px;
+    resize: vertical;
+  }
+  .modal-actions{ display:flex; flex-wrap:wrap; gap:8px; }
+  .modal-actions a, .modal-actions button{
+    font-family:'IBM Plex Sans', sans-serif;
+    font-weight: 500;
+    font-size: 12.5px;
+    padding: 9px 14px;
+    border-radius: var(--radius);
+    border: 1px solid var(--line-strong);
+    background: var(--paper);
+    color: var(--ink);
+    cursor:pointer;
+    text-decoration:none;
+    display:inline-flex; align-items:center; gap:6px;
+  }
+  .modal-actions .primary{ background: var(--ink); color: var(--paper-raised); border-color: var(--ink); }
+  .modal-actions .primary:hover{ background:#14180F; }
+  .modal-close{
+    background:none; border:none; cursor:pointer;
+    color: var(--ink-soft); font-family:'IBM Plex Mono', monospace; font-size:11px;
+    margin-top: 12px; text-decoration:underline;
+  }
+
+  @media (max-width: 720px){
+    .layout{ grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <div class="brand">
+      <h1>Rally</h1>
+      <p>focus now, get it done</p>
+    </div>
+    <div class="focus-toggle" id="focusToggle">
+      <span id="focusLabel">Focus mode</span>
+      <div class="switch on" id="focusSwitch"></div>
+    </div>
+  </header>
+
+  <nav class="tabbar">
+    <button id="tabCalendar" class="active">Calendar</button>
+    <button id="tabTodo">Todo List</button>
+  </nav>
+
+  <div class="layout" id="layout">
+    <section class="panel" id="calPanel">
+      <div class="cal-nav">
+        <div class="month-label" id="monthLabel"></div>
+        <div class="cal-nav-btns">
+          <button id="prevMonth">‹</button>
+          <button id="todayBtn" title="Jump to today" style="font-family:'IBM Plex Sans';font-size:11px;">Today</button>
+          <button id="nextMonth">›</button>
+        </div>
+      </div>
+      <div class="weekdays">
+        <div>Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div>
+      </div>
+      <div class="daygrid" id="dayGrid"></div>
+    </section>
+
+    <section class="panel" id="sidePanel">
+      <div class="side-date" id="sideDate">—</div>
+      <div class="side-sub" id="sideSub">&nbsp;</div>
+
+      <div class="entry-btns">
+        <button id="btnNote"><span class="dotmark"></span>Take a note</button>
+        <button id="btnTask"><span class="dotmark"></span>Set a reminder</button>
+      </div>
+
+      <div class="quick-form" id="noteForm">
+        <textarea id="noteText" placeholder="What's on your mind…"></textarea>
+        <div class="form-actions">
+          <span class="hint">⌘+Enter to save</span>
+          <button type="button" id="noteCancel">Cancel</button>
+          <button type="button" class="save-btn disabled" id="noteSave">Save note</button>
+        </div>
+      </div>
+
+      <div class="quick-form" id="taskForm">
+        <textarea id="taskText" placeholder="What needs doing…"></textarea>
+        <div class="time-row">
+          <label for="taskTime">Time</label>
+          <input type="time" id="taskTime">
+        </div>
+        <div class="form-actions">
+          <span class="hint">⌘+Enter to save</span>
+          <button type="button" id="taskCancel">Cancel</button>
+          <button type="button" class="save-btn disabled" id="taskSave">Add reminder</button>
+        </div>
+      </div>
+
+      <div class="agenda-header">
+        <span id="agendaLabel">ENTRIES</span>
+        <span id="agendaCount"></span>
+      </div>
+      <div class="agenda-list" id="agendaList"></div>
+    </section>
+  </div>
+
+  <section class="todo-view" id="todoView">
+    <div class="todo-topbar">
+      <div>
+        <div class="side-date" id="todoDateLabel">Today</div>
+        <div class="side-sub" id="todoDateSub">&nbsp;</div>
+      </div>
+      <button class="share-btn" id="shareBtn">Share list</button>
+    </div>
+
+    <div class="panel todo-section" id="choreSection">
+      <div class="todo-section-header">
+        <h2>Chore Chart</h2>
+        <span class="section-count" id="choreCount"></span>
+      </div>
+      <div class="section-hint">No date or time needed — just today's must-dos. Swipe left or tap "later" to reschedule instead.</div>
+      <div class="inline-add chore-add">
+        <input type="text" id="choreInput" placeholder="Add a chore for today…">
+        <button type="button" id="choreAddBtn">Add</button>
+      </div>
+      <div class="agenda-list" id="choreList"></div>
+    </div>
+
+    <div class="panel todo-section" id="remindersSection">
+      <div class="todo-section-header">
+        <h2>Today's Reminders</h2>
+        <span class="section-count" id="reminderCount"></span>
+      </div>
+      <div class="inline-add">
+        <input type="text" id="reminderInput" placeholder="Add a reminder for today…">
+        <input type="time" id="reminderTimeInput">
+        <button type="button" id="reminderAddBtn">Add</button>
+      </div>
+      <div class="agenda-list" id="reminderList"></div>
+    </div>
+
+    <div class="panel todo-section" id="notesSection">
+      <div class="todo-section-header">
+        <h2>Notes</h2>
+        <span class="section-count" id="notesCount"></span>
+      </div>
+      <div class="inline-add note-add">
+        <input type="text" id="noteInlineInput" placeholder="Jot a quick note…">
+        <button type="button" id="noteAddBtn">Add</button>
+      </div>
+      <div class="filter-row">
+        <input type="text" id="notesFilter" placeholder="Search notes…">
+      </div>
+      <div class="agenda-list" id="notesList"></div>
+      <button class="show-all-link" id="notesShowAll" style="display:none;">Show all notes</button>
+    </div>
+  </section>
+</div>
+
+<div class="modal-overlay" id="shareModal">
+  <div class="modal-card">
+    <h3>Share today's list</h3>
+    <div class="modal-sub" id="shareModalSub">Copy the text below or send it straight to Messages.</div>
+    <textarea id="shareText" readonly></textarea>
+    <div class="modal-actions">
+      <button type="button" class="primary" id="copyShareBtn">Copy text</button>
+      <a href="#" id="smsShareLink">Open Messages</a>
+      <button type="button" id="closeShareBtn">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const STORAGE_KEY = 'entries';
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  let entries = [];
+  let viewYear, viewMonth;
+  let selectedDate = fmt(new Date());
+  let focusMode = true;
+  let currentView = 'calendar';
+  let notesShowAllFlag = false;
+  let notesFilterText = '';
+  let storageReady = false;
+
+  const todayDate = new Date();
+  viewYear = todayDate.getFullYear();
+  viewMonth = todayDate.getMonth();
+
+  function fmt(d){
+    const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+  }
+  function parseYMD(s){
+    const [y,m,d] = s.split('-').map(Number);
+    return new Date(y, m-1, d);
+  }
+  function niceDate(s){
+    const d = parseYMD(s);
+    const weekdays = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    return `${weekdays[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}`;
+  }
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+  async function loadEntries(){
+    try{
+      const res = await window.storage.get(STORAGE_KEY, false);
+      entries = res && res.value ? JSON.parse(res.value) : [];
+    }catch(e){
+      entries = [];
+    }
+    storageReady = true;
+  }
+  async function saveEntries(){
+    try{
+      await window.storage.set(STORAGE_KEY, JSON.stringify(entries), false);
+    }catch(e){ /* best effort */ }
+  }
+
+  function entriesFor(dateStr){
+    return entries.filter(e => e.date === dateStr).sort((a,b)=>{
+      if(a.type==='task' && b.type==='task'){ return (a.time||'99:99').localeCompare(b.time||'99:99'); }
+      if(a.type==='task') return -1;
+      if(b.type==='task') return 1;
+      return a.createdAt - b.createdAt;
+    });
+  }
+
+  function renderMonthLabel(){
+    document.getElementById('monthLabel').textContent = `${MONTHS[viewMonth]} ${viewYear}`;
+  }
+
+  function renderGrid(){
+    const grid = document.getElementById('dayGrid');
+    grid.innerHTML = '';
+    const first = new Date(viewYear, viewMonth, 1);
+    const startOffset = first.getDay();
+    const daysInMonth = new Date(viewYear, viewMonth+1, 0).getDate();
+    const daysInPrev = new Date(viewYear, viewMonth, 0).getDate();
+    const totalCells = Math.ceil((startOffset + daysInMonth) / 7) * 7;
+
+    for(let i=0; i<totalCells; i++){
+      const dayNum = i - startOffset + 1;
+      let cellDate, outside = false;
+      if(dayNum < 1){
+        cellDate = new Date(viewYear, viewMonth-1, daysInPrev + dayNum);
+        outside = true;
+      } else if(dayNum > daysInMonth){
+        cellDate = new Date(viewYear, viewMonth+1, dayNum - daysInMonth);
+        outside = true;
+      } else {
+        cellDate = new Date(viewYear, viewMonth, dayNum);
+      }
+      const dStr = fmt(cellDate);
+      const cell = document.createElement('div');
+      cell.className = 'daycell' + (outside ? ' outside' : '') + (dStr === fmt(todayDate) ? ' today' : '') + (dStr === selectedDate ? ' selected' : '');
+      const num = document.createElement('div');
+      num.className = 'num';
+      num.textContent = cellDate.getDate();
+      cell.appendChild(num);
+
+      const dayEntries = entriesFor(dStr);
+      if(dayEntries.length){
+        const dotsWrap = document.createElement('div');
+        dotsWrap.className = 'dots';
+        const hasNote = dayEntries.some(e=>e.type==='note');
+        const hasTask = dayEntries.some(e=>e.type==='task');
+        const hasChore = dayEntries.some(e=>e.type==='chore');
+        if(hasNote){ const d=document.createElement('div'); d.className='dot note'; dotsWrap.appendChild(d); }
+        if(hasTask){ const d=document.createElement('div'); d.className='dot task'; dotsWrap.appendChild(d); }
+        if(hasChore){ const d=document.createElement('div'); d.className='dot chore'; dotsWrap.appendChild(d); }
+        cell.appendChild(dotsWrap);
+      }
+      cell.addEventListener('click', ()=>{ selectedDate = dStr; closeForms(); renderAll(); });
+      grid.appendChild(cell);
+    }
+  }
+
+  function renderSideHeader(){
+    const dateEl = document.getElementById('sideDate');
+    const subEl = document.getElementById('sideSub');
+    if(focusMode){
+      dateEl.textContent = 'Today';
+      subEl.textContent = niceDate(fmt(todayDate));
+      selectedDate = fmt(todayDate);
+    } else {
+      dateEl.textContent = selectedDate === fmt(todayDate) ? 'Today' : niceDate(selectedDate).split(',')[0];
+      subEl.textContent = niceDate(selectedDate);
+    }
+  }
+
+  function buildEntryRow(e, opts){
+    opts = opts || {};
+    const nowStr = fmt(todayDate);
+    const row = document.createElement('div');
+    row.className = 'entry' + ((e.type==='task' || e.type==='chore') && e.done ? ' done' : '');
+
+    const marker = document.createElement('div');
+    if(e.type === 'task' || e.type === 'chore'){
+      marker.className = 'marker' + (e.done ? ' checked' : '') + (e.type==='chore' ? ' chore-marker' : '');
+      marker.addEventListener('click', async ()=>{
+        e.done = !e.done;
+        await saveEntries();
+        refreshUI();
+      });
+    } else {
+      marker.className = 'marker note-marker';
+    }
+    row.appendChild(marker);
+
+    const body = document.createElement('div');
+    body.className = 'entry-body';
+    const text = document.createElement('div');
+    text.className = 'entry-text';
+    text.textContent = e.text;
+    body.appendChild(text);
+
+    const meta = document.createElement('div');
+    meta.className = 'entry-meta';
+    if(e.type === 'task'){
+      const timeSpan = document.createElement('span');
+      timeSpan.textContent = e.time ? e.time : 'no time set';
+      meta.appendChild(timeSpan);
+      if(opts.showDate){
+        const dateSpan = document.createElement('span');
+        dateSpan.textContent = niceDate(e.date).split(',')[0] + ' ' + parseYMD(e.date).getDate();
+        meta.appendChild(dateSpan);
+      }
+      if(!e.done && e.date < nowStr){
+        const overdue = document.createElement('span');
+        overdue.className = 'overdue';
+        overdue.textContent = 'overdue';
+        meta.appendChild(overdue);
+      }
+    } else if(e.type === 'chore'){
+      const tag = document.createElement('span');
+      tag.className = 'chore-tag';
+      tag.textContent = 'chore';
+      meta.appendChild(tag);
+      if(e.date < nowStr && !e.done){
+        const carried = document.createElement('span');
+        carried.className = 'carried';
+        carried.textContent = 'from ' + niceDate(e.date).split(',')[0] + ' ' + parseYMD(e.date).getDate();
+        meta.appendChild(carried);
+      }
+    } else {
+      const noteSpan = document.createElement('span');
+      noteSpan.textContent = 'note';
+      meta.appendChild(noteSpan);
+    }
+    body.appendChild(meta);
+    row.appendChild(body);
+
+    if(opts.showDate && e.type === 'task' && !e.done){
+      const moveBtn = document.createElement('button');
+      moveBtn.className = 'move-today';
+      moveBtn.textContent = '→ today';
+      moveBtn.title = 'Move to today';
+      moveBtn.addEventListener('click', async (ev)=>{
+        ev.stopPropagation();
+        e.date = nowStr;
+        await saveEntries();
+        refreshUI();
+      });
+      row.appendChild(moveBtn);
+    }
+
+    if(e.type === 'chore' && !e.done){
+      const laterBtn = document.createElement('button');
+      laterBtn.className = 'move-today';
+      laterBtn.textContent = '→ later';
+      laterBtn.title = 'Reschedule as a future reminder';
+      laterBtn.addEventListener('click', (ev)=>{
+        ev.stopPropagation();
+        openReschedule(e.id, row);
+      });
+      row.appendChild(laterBtn);
+    }
+
+    const del = document.createElement('button');
+    del.className = 'entry-del';
+    del.innerHTML = '&times;';
+    del.title = 'Delete';
+    del.addEventListener('click', async ()=>{
+      entries = entries.filter(x => x.id !== e.id);
+      await saveEntries();
+      refreshUI();
+    });
+    row.appendChild(del);
+
+    if(e.type === 'chore' && !e.done){
+      attachSwipe(row, e);
+    }
+
+    return row;
+  }
+
+  // ---- Swipe-to-reschedule (chores only) ----
+  function attachSwipe(row, e){
+    row.dataset.swipeable = '1';
+    let startX = 0, startY = 0, dx = 0, tracking = false, horizontal = false;
+    row.addEventListener('touchstart', (ev)=>{
+      const t = ev.touches[0];
+      startX = t.clientX; startY = t.clientY; dx = 0; tracking = true; horizontal = false;
+      row.style.transition = 'none';
+    }, { passive: true });
+    row.addEventListener('touchmove', (ev)=>{
+      if(!tracking) return;
+      const t = ev.touches[0];
+      dx = t.clientX - startX;
+      const dy = t.clientY - startY;
+      if(!horizontal && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 6){ horizontal = true; }
+      if(horizontal && dx < 0){
+        row.style.transform = `translateX(${Math.max(dx, -84)}px)`;
+      }
+    }, { passive: true });
+    row.addEventListener('touchend', ()=>{
+      if(!tracking) return;
+      tracking = false;
+      row.style.transition = 'transform .2s ease';
+      row.style.transform = 'translateX(0)';
+      if(horizontal && dx < -50){
+        openReschedule(e.id, row);
+      }
+    });
+  }
+
+  function closeReschedule(){
+    const existing = document.querySelector('.reschedule-form');
+    if(existing) existing.remove();
+  }
+
+  function openReschedule(entryId, anchorRow){
+    closeReschedule();
+    const tomorrow = new Date(todayDate);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const form = document.createElement('div');
+    form.className = 'quick-form open reschedule-form';
+    form.innerHTML = `
+      <div class="time-row">
+        <label>Date</label>
+        <input type="date" class="rf-date" value="${fmt(tomorrow)}">
+      </div>
+      <div class="time-row">
+        <label>Time (optional)</label>
+        <input type="time" class="rf-time">
+      </div>
+      <div class="form-actions">
+        <button type="button" class="rf-cancel">Cancel</button>
+        <button type="button" class="save-btn rf-confirm">Set reminder</button>
+      </div>
+    `;
+    anchorRow.insertAdjacentElement('afterend', form);
+    form.querySelector('.rf-cancel').addEventListener('click', closeReschedule);
+    form.querySelector('.rf-confirm').addEventListener('click', async ()=>{
+      const dateVal = form.querySelector('.rf-date').value;
+      const timeVal = form.querySelector('.rf-time').value;
+      if(!dateVal) return;
+      const entry = entries.find(x => x.id === entryId);
+      if(entry){
+        entry.type = 'task';
+        entry.date = dateVal;
+        entry.time = timeVal || null;
+        entry.done = false;
+        await saveEntries();
+      }
+      refreshUI();
+    });
+  }
+
+  function renderAgenda(){
+    const list = document.getElementById('agendaList');
+    const label = document.getElementById('agendaLabel');
+    const count = document.getElementById('agendaCount');
+    list.innerHTML = '';
+
+    const dayEntries = entriesFor(selectedDate);
+    label.textContent = focusMode ? "TODAY'S AGENDA" : 'ENTRIES';
+
+    const nowStr = fmt(todayDate);
+    const overdueEntries = focusMode
+      ? entries.filter(e => e.type==='task' && !e.done && e.date < nowStr).sort((a,b)=>a.date.localeCompare(b.date))
+      : [];
+
+    if(focusMode){
+      const doneCount = dayEntries.filter(e=>e.type==='task' && e.done).length;
+      const taskCount = dayEntries.filter(e=>e.type==='task').length;
+      count.textContent = taskCount ? `${doneCount} / ${taskCount} done` : '';
+    } else {
+      count.textContent = dayEntries.length ? `${dayEntries.length}` : '';
+    }
+
+    if(overdueEntries.length){
+      const gl = document.createElement('div');
+      gl.className = 'group-label';
+      gl.textContent = `Carried over (${overdueEntries.length})`;
+      list.appendChild(gl);
+      overdueEntries.forEach(e => list.appendChild(buildEntryRow(e, { showDate: true })));
+    }
+
+    if(!dayEntries.length){
+      if(overdueEntries.length){
+        const gl2 = document.createElement('div');
+        gl2.className = 'group-label upcoming';
+        gl2.textContent = 'Today';
+        list.appendChild(gl2);
+      }
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.textContent = 'Nothing here yet.';
+      list.appendChild(empty);
+      return;
+    }
+
+    if(overdueEntries.length){
+      const gl2 = document.createElement('div');
+      gl2.className = 'group-label upcoming';
+      gl2.textContent = 'Today';
+      list.appendChild(gl2);
+    }
+
+    dayEntries.forEach(e => list.appendChild(buildEntryRow(e, { showDate: false })));
+  }
+
+  function closeForms(){
+    document.getElementById('noteForm').classList.remove('open');
+    document.getElementById('taskForm').classList.remove('open');
+    document.getElementById('noteText').value = '';
+    document.getElementById('taskText').value = '';
+    document.getElementById('taskTime').value = '';
+    document.getElementById('noteSave').classList.add('disabled');
+    document.getElementById('taskSave').classList.add('disabled');
+    closeReschedule();
+  }
+
+  function renderAll(){
+    document.getElementById('layout').className = 'layout' + (focusMode ? ' focused' : '');
+    document.getElementById('calPanel').style.display = focusMode ? 'none' : '';
+    renderMonthLabel();
+    renderGrid();
+    renderSideHeader();
+    renderAgenda();
+  }
+
+  function refreshUI(){
+    if(currentView === 'calendar'){ renderAll(); }
+    else { renderTodoView(); }
+  }
+
+  // ---- Todo List page ----
+  function renderTodoView(){
+    closeReschedule();
+    const nowStr = fmt(todayDate);
+    document.getElementById('todoDateSub').textContent = niceDate(nowStr);
+
+    // Chore chart: due today or carried over (incomplete, any past date) + today's completed
+    const chores = entries
+      .filter(e => e.type === 'chore' && ((!e.done && e.date <= nowStr) || (e.done && e.date === nowStr)))
+      .sort((a,b)=>{
+        if(a.done !== b.done) return a.done ? 1 : -1;
+        return a.date.localeCompare(b.date);
+      });
+    const choreList = document.getElementById('choreList');
+    choreList.innerHTML = '';
+    if(!chores.length){
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.textContent = 'No chores on the chart. Add one above.';
+      choreList.appendChild(empty);
+    } else {
+      chores.forEach(e => choreList.appendChild(buildEntryRow(e, {})));
+    }
+    const choreDone = chores.filter(e=>e.done).length;
+    document.getElementById('choreCount').textContent = chores.length ? `${choreDone} / ${chores.length} done` : '';
+
+    // Today's reminders
+    const reminders = entriesFor(nowStr).filter(e => e.type === 'task')
+      .sort((a,b)=>(a.time||'99:99').localeCompare(b.time||'99:99'));
+    const reminderList = document.getElementById('reminderList');
+    reminderList.innerHTML = '';
+    if(!reminders.length){
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.textContent = 'No reminders set for today.';
+      reminderList.appendChild(empty);
+    } else {
+      reminders.forEach(e => reminderList.appendChild(buildEntryRow(e, {})));
+    }
+    const reminderDone = reminders.filter(e=>e.done).length;
+    document.getElementById('reminderCount').textContent = reminders.length ? `${reminderDone} / ${reminders.length} done` : '';
+
+    // Notes
+    let notes = entries.filter(e => e.type === 'note').sort((a,b)=>b.createdAt - a.createdAt);
+    if(notesFilterText){
+      const q = notesFilterText.toLowerCase();
+      notes = notes.filter(e => e.text.toLowerCase().includes(q));
+    }
+    document.getElementById('notesCount').textContent = notes.length ? `${notes.length}` : '';
+    const visibleNotes = notesShowAllFlag ? notes : notes.slice(0, 6);
+    const notesList = document.getElementById('notesList');
+    notesList.innerHTML = '';
+    if(!notes.length){
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.textContent = notesFilterText ? 'No notes match that search.' : 'No notes yet.';
+      notesList.appendChild(empty);
+    } else {
+      visibleNotes.forEach(e => notesList.appendChild(buildNoteRow(e)));
+    }
+    const showAllBtn = document.getElementById('notesShowAll');
+    if(notes.length > 6 && !notesShowAllFlag){
+      showAllBtn.style.display = '';
+      showAllBtn.textContent = `Show all ${notes.length} notes`;
+    } else {
+      showAllBtn.style.display = 'none';
+    }
+  }
+
+  function buildNoteRow(e){
+    const row = document.createElement('div');
+    row.className = 'note-row';
+    const marker = document.createElement('div');
+    marker.className = 'marker note-marker';
+    row.appendChild(marker);
+
+    const body = document.createElement('div');
+    body.className = 'entry-body';
+    const text = document.createElement('div');
+    text.className = 'entry-text';
+    text.textContent = e.text;
+    body.appendChild(text);
+    const meta = document.createElement('div');
+    meta.className = 'entry-meta';
+    const dateSpan = document.createElement('span');
+    const nowStr = fmt(todayDate);
+    dateSpan.textContent = e.date === nowStr ? 'today' : (niceDate(e.date).split(',')[0] + ' ' + parseYMD(e.date).getDate());
+    meta.appendChild(dateSpan);
+    body.appendChild(meta);
+    row.appendChild(body);
+
+    const del = document.createElement('button');
+    del.className = 'entry-del';
+    del.innerHTML = '&times;';
+    del.title = 'Delete';
+    del.addEventListener('click', async ()=>{
+      entries = entries.filter(x => x.id !== e.id);
+      await saveEntries();
+      refreshUI();
+    });
+    row.appendChild(del);
+    return row;
+  }
+
+  // ---- Share ----
+  function buildShareText(){
+    const nowStr = fmt(todayDate);
+    const lines = [];
+    lines.push(`Rally — ${niceDate(nowStr)}`);
+
+    const chores = entries.filter(e => e.type==='chore' && ((!e.done && e.date <= nowStr) || (e.done && e.date === nowStr)));
+    if(chores.length){
+      lines.push('', 'Chore Chart');
+      chores.forEach(e => lines.push(`${e.done ? '[x]' : '[ ]'} ${e.text}`));
+    }
+
+    const reminders = entriesFor(nowStr).filter(e => e.type==='task').sort((a,b)=>(a.time||'99:99').localeCompare(b.time||'99:99'));
+    if(reminders.length){
+      lines.push('', 'Reminders');
+      reminders.forEach(e => lines.push(`${e.done ? '[x]' : '[ ]'} ${e.time ? e.time + ' — ' : ''}${e.text}`));
+    }
+
+    const notes = entries.filter(e => e.type==='note' && e.date === nowStr);
+    if(notes.length){
+      lines.push('', 'Notes');
+      notes.forEach(e => lines.push(`• ${e.text}`));
+    }
+
+    if(lines.length === 1){ lines.push('', 'Nothing on the list yet.'); }
+    return lines.join('\n');
+  }
+
+  async function shareList(){
+    const text = buildShareText();
+    if(navigator.share){
+      try{
+        await navigator.share({ text, title: 'Rally — today' });
+        return;
+      }catch(err){
+        if(err && err.name === 'AbortError') return;
+        // fall through to manual modal on failure
+      }
+    }
+    openShareModal(text);
+  }
+
+  function openShareModal(text){
+    document.getElementById('shareText').value = text;
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    document.getElementById('smsShareLink').href = `sms:${isIOS ? '&' : '?'}body=${encodeURIComponent(text)}`;
+    document.getElementById('shareModal').classList.add('open');
+  }
+  function closeShareModal(){
+    document.getElementById('shareModal').classList.remove('open');
+  }
+
+  // ---- Event wiring ----
+  document.getElementById('prevMonth').addEventListener('click', ()=>{
+    viewMonth--; if(viewMonth<0){ viewMonth=11; viewYear--; }
+    renderMonthLabel(); renderGrid();
+  });
+  document.getElementById('nextMonth').addEventListener('click', ()=>{
+    viewMonth++; if(viewMonth>11){ viewMonth=0; viewYear++; }
+    renderMonthLabel(); renderGrid();
+  });
+  document.getElementById('todayBtn').addEventListener('click', ()=>{
+    viewYear = todayDate.getFullYear(); viewMonth = todayDate.getMonth();
+    selectedDate = fmt(todayDate);
+    renderAll();
+  });
+
+  document.getElementById('focusToggle').addEventListener('click', ()=>{
+    focusMode = !focusMode;
+    document.getElementById('focusSwitch').classList.toggle('on', focusMode);
+    closeForms();
+    renderAll();
+  });
+
+  document.getElementById('btnNote').addEventListener('click', ()=>{
+    document.getElementById('taskForm').classList.remove('open');
+    document.getElementById('noteForm').classList.toggle('open');
+    document.getElementById('noteText').focus();
+  });
+  document.getElementById('btnTask').addEventListener('click', ()=>{
+    document.getElementById('noteForm').classList.remove('open');
+    document.getElementById('taskForm').classList.toggle('open');
+    document.getElementById('taskText').focus();
+  });
+  document.getElementById('noteCancel').addEventListener('click', closeForms);
+  document.getElementById('taskCancel').addEventListener('click', closeForms);
+
+  document.getElementById('noteSave').addEventListener('click', async ()=>{
+    const val = document.getElementById('noteText').value.trim();
+    if(!val) return;
+    entries.push({ id: uid(), type: 'note', text: val, date: selectedDate, createdAt: Date.now() });
+    await saveEntries();
+    closeForms();
+    renderAll();
+  });
+  document.getElementById('taskSave').addEventListener('click', async ()=>{
+    const val = document.getElementById('taskText').value.trim();
+    if(!val) return;
+    const time = document.getElementById('taskTime').value;
+    entries.push({ id: uid(), type: 'task', text: val, date: selectedDate, time: time || null, done: false, createdAt: Date.now() });
+    await saveEntries();
+    closeForms();
+    renderAll();
+  });
+
+  // Enter+Cmd/Ctrl to save quickly
+  document.getElementById('noteText').addEventListener('keydown', (ev)=>{
+    if(ev.key === 'Enter' && (ev.metaKey || ev.ctrlKey)) document.getElementById('noteSave').click();
+  });
+  document.getElementById('taskText').addEventListener('keydown', (ev)=>{
+    if(ev.key === 'Enter' && (ev.metaKey || ev.ctrlKey)) document.getElementById('taskSave').click();
+  });
+
+  // Toggle save-button contrast based on whether there's text to save
+  document.getElementById('noteText').addEventListener('input', (ev)=>{
+    document.getElementById('noteSave').classList.toggle('disabled', !ev.target.value.trim());
+  });
+  document.getElementById('taskText').addEventListener('input', (ev)=>{
+    document.getElementById('taskSave').classList.toggle('disabled', !ev.target.value.trim());
+  });
+
+  // Guard against saving empty entries via click when disabled
+  document.getElementById('noteSave').addEventListener('click', (ev)=>{
+    if(ev.currentTarget.classList.contains('disabled')){ ev.stopImmediatePropagation(); }
+  }, true);
+  document.getElementById('taskSave').addEventListener('click', (ev)=>{
+    if(ev.currentTarget.classList.contains('disabled')){ ev.stopImmediatePropagation(); }
+  }, true);
+
+  // ---- Tab switching ----
+  document.getElementById('tabCalendar').addEventListener('click', ()=>{
+    currentView = 'calendar';
+    document.getElementById('tabCalendar').classList.add('active');
+    document.getElementById('tabTodo').classList.remove('active');
+    document.getElementById('layout').style.display = '';
+    document.getElementById('todoView').style.display = 'none';
+    document.getElementById('focusToggle').style.display = '';
+    closeForms();
+    renderAll();
+  });
+  document.getElementById('tabTodo').addEventListener('click', ()=>{
+    currentView = 'todo';
+    document.getElementById('tabTodo').classList.add('active');
+    document.getElementById('tabCalendar').classList.remove('active');
+    document.getElementById('layout').style.display = 'none';
+    document.getElementById('todoView').style.display = 'block';
+    document.getElementById('focusToggle').style.display = 'none';
+    closeReschedule();
+    renderTodoView();
+  });
+
+  // ---- Todo view: inline add rows ----
+  function wireInlineAdd(inputId, btnId, onAdd){
+    const input = document.getElementById(inputId);
+    const btn = document.getElementById(btnId);
+    input.addEventListener('input', ()=> btn.classList.toggle('enabled', !!input.value.trim()));
+    btn.addEventListener('click', async ()=>{
+      const val = input.value.trim();
+      if(!val) return;
+      await onAdd(val);
+      input.value = '';
+      btn.classList.remove('enabled');
+      input.focus();
+    });
+    input.addEventListener('keydown', async (ev)=>{
+      if(ev.key === 'Enter'){
+        const val = input.value.trim();
+        if(!val) return;
+        await onAdd(val);
+        input.value = '';
+        btn.classList.remove('enabled');
+      }
+    });
+  }
+
+  wireInlineAdd('choreInput', 'choreAddBtn', async (val)=>{
+    entries.push({ id: uid(), type: 'chore', text: val, date: fmt(todayDate), done: false, createdAt: Date.now() });
+    await saveEntries();
+    refreshUI();
+  });
+  wireInlineAdd('reminderInput', 'reminderAddBtn', async (val)=>{
+    const time = document.getElementById('reminderTimeInput').value;
+    entries.push({ id: uid(), type: 'task', text: val, date: fmt(todayDate), time: time || null, done: false, createdAt: Date.now() });
+    document.getElementById('reminderTimeInput').value = '';
+    await saveEntries();
+    refreshUI();
+  });
+  wireInlineAdd('noteInlineInput', 'noteAddBtn', async (val)=>{
+    entries.push({ id: uid(), type: 'note', text: val, date: fmt(todayDate), createdAt: Date.now() });
+    await saveEntries();
+    refreshUI();
+  });
+
+  document.getElementById('notesFilter').addEventListener('input', (ev)=>{
+    notesFilterText = ev.target.value.trim();
+    renderTodoView();
+  });
+  document.getElementById('notesShowAll').addEventListener('click', ()=>{
+    notesShowAllFlag = true;
+    renderTodoView();
+  });
+
+  // ---- Share modal wiring ----
+  document.getElementById('shareBtn').addEventListener('click', shareList);
+  document.getElementById('closeShareBtn').addEventListener('click', closeShareModal);
+  document.getElementById('shareModal').addEventListener('click', (ev)=>{
+    if(ev.target.id === 'shareModal') closeShareModal();
+  });
+  document.getElementById('copyShareBtn').addEventListener('click', async ()=>{
+    const ta = document.getElementById('shareText');
+    const btn = document.getElementById('copyShareBtn');
+    try{
+      await navigator.clipboard.writeText(ta.value);
+      const original = btn.textContent;
+      btn.textContent = 'Copied!';
+      setTimeout(()=>{ btn.textContent = original; }, 1600);
+    }catch(err){
+      ta.focus(); ta.select();
+    }
+  });
+
+  // ---- Init ----
+  (async function init(){
+    await loadEntries();
+    renderAll();
+  })();
+})();
+</script>
+
+</body>
+</html>
