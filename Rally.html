@@ -6,6 +6,7 @@
 <title>Rally</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,ital@9..144,500;9..144,600;9..144,700;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.ably.com/lib/ably.min-2.js"></script>
 <style>
   :root{
     --paper: #EFEDE5;
@@ -637,6 +638,72 @@
     background: var(--danger); color: var(--paper-raised);
     border-radius: 20px; font-size: 9.5px; padding: 1px 6px;
   }
+  .sync-dot{
+    display:inline-block; width:6px; height:6px; border-radius:50%;
+    margin-left:6px; background: var(--ink-faint);
+  }
+  .sync-dot.ok{ background: var(--note); }
+  .sync-dot.error{ background: var(--danger); }
+  .sync-dot.syncing{ background: var(--gold); }
+  .sync-dot.live{ background: var(--note); box-shadow: 0 0 0 2px var(--note-soft); }
+  .realtime-badge{
+    display:inline-block; font-family:'IBM Plex Mono', monospace; font-size:10px;
+    padding: 1px 7px; border-radius: 20px; margin-left: 8px;
+    background: var(--note-soft); color: var(--note); border: 1px solid var(--note);
+  }
+  .realtime-badge.off{ background: var(--paper); color: var(--ink-faint); border-color: var(--line-strong); }
+
+  /* ---------- Sync modal ---------- */
+  .sync-field{ margin-bottom: 12px; }
+  .sync-field label{
+    display:block; font-family:'IBM Plex Mono', monospace; font-size:11px;
+    color: var(--ink-soft); margin-bottom: 5px;
+  }
+  .sync-field input{
+    width:100%;
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius);
+    padding: 8px 10px;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  .sync-field input:focus{ outline: 1.5px solid var(--gold); }
+  .sync-actions-row{ display:flex; margin-bottom: 4px; }
+  .sync-actions-row .save-btn{ width:100%; }
+  .sync-divider{
+    text-align:center; font-family:'IBM Plex Mono', monospace; font-size:11px;
+    color: var(--ink-faint); margin: 16px 0;
+  }
+  .sync-code-row{ display:flex; gap:8px; }
+  .sync-code-row input{ flex:1; }
+  .sync-code-row button{
+    font-family:'IBM Plex Mono', monospace; font-size:11px;
+    border: 1px solid var(--line-strong); border-radius: var(--radius);
+    background: var(--paper-raised); color: var(--ink); cursor:pointer; padding: 0 12px;
+  }
+
+  /* ---------- Manage tags modal ---------- */
+  .manage-tag-row{
+    display:flex; align-items:center; gap:8px; margin-bottom:8px;
+  }
+  .manage-tag-row .mt-rename{
+    flex:1;
+    font-family:'IBM Plex Sans', sans-serif; font-size:13px;
+    border: 1px solid var(--line-strong); border-radius: var(--radius);
+    padding: 7px 9px; background: var(--paper); color: var(--ink);
+  }
+  .manage-tag-row .mt-count{
+    font-family:'IBM Plex Mono', monospace; font-size:11px; color: var(--ink-faint); flex-shrink:0;
+  }
+  .manage-tag-row button{
+    font-family:'IBM Plex Mono', monospace; font-size:11px;
+    border: 1px solid var(--line-strong); border-radius: var(--radius);
+    background: var(--paper-raised); color: var(--ink); cursor:pointer; padding: 6px 10px; flex-shrink:0;
+  }
+  button.danger{ color: var(--danger); border-color: var(--danger); }
+  button.danger:hover{ background: var(--danger); color: var(--paper-raised); }
 
   /* ---------- Tags ---------- */
   .tag-chip-row{ display:flex; flex-wrap:wrap; gap: 6px; }
@@ -652,6 +719,11 @@
   }
   .tag-chip:hover{ border-color: var(--ink-soft); }
   .tag-chip.active{ background: var(--ink); color: var(--paper-raised); border-color: var(--ink); }
+  .tag-pill-display{
+    cursor: default; padding: 3px 9px; font-size: 10px;
+    background: var(--gold-soft); border-color: var(--gold); color: var(--ink);
+  }
+  .tag-pill-display:hover{ border-color: var(--gold); }
   .tag-filter-row{ margin-bottom: 18px; }
   .entry-tag-btn{
     font-family:'IBM Plex Mono', monospace;
@@ -781,6 +853,7 @@
     </div>
     <div class="header-actions">
       <button class="theme-btn" id="themeToggle">Dark mode</button>
+      <button class="archive-btn" id="syncBtn">Sync<span class="sync-dot" id="syncDot" style="display:none;"></span></button>
       <button class="archive-btn" id="archiveBtn">Archive<span class="badge" id="archiveBadge" style="display:none;">0</span></button>
       <div class="focus-toggle" id="focusToggle">
         <span id="focusLabel">Focus mode</span>
@@ -862,6 +935,7 @@
     </div>
 
     <div class="tag-filter-row" id="tagFilterRow" style="display:none;"></div>
+    <button class="show-all-link" id="manageTagsBtn" style="display:none;">Edit tags</button>
 
     <div class="panel todo-section" id="choreSection">
       <div class="todo-section-header">
@@ -964,10 +1038,73 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="syncModal">
+  <div class="modal-card">
+    <h3>Sync between devices</h3>
+    <div class="modal-sub">Uses a free jsonbin.io account as the relay between devices. Only whoever has your Sync Code and Master Key can read or write this list.</div>
+
+    <div id="syncSetupBlock">
+      <div class="sync-field">
+        <label>Master Key</label>
+        <input type="password" id="syncApiKeyInput" placeholder="Paste your jsonbin.io Master Key">
+      </div>
+      <div class="modal-sub">Don't have one? <a href="https://jsonbin.io" target="_blank" rel="noopener">Create a free jsonbin.io account</a>, then copy your Master Key from the API Keys section of the dashboard.</div>
+      <div class="sync-actions-row">
+        <button type="button" class="save-btn" id="syncCreateBtn">Create a new synced list</button>
+      </div>
+      <div class="sync-divider">— or, to pair with a device that already made one —</div>
+      <div class="sync-field">
+        <label>Sync Code</label>
+        <input type="text" id="syncJoinCodeInput" placeholder="Paste the Sync Code from the other device">
+      </div>
+      <div class="sync-actions-row">
+        <button type="button" class="save-btn" id="syncJoinBtn">Join existing list</button>
+      </div>
+    </div>
+
+    <div id="syncConnectedBlock" style="display:none;">
+      <div class="sync-field">
+        <label>Sync Code — share this with the other device or person</label>
+        <div class="sync-code-row">
+          <input type="text" id="syncCodeDisplay" readonly>
+          <button type="button" id="copySyncCodeBtn">Copy</button>
+        </div>
+      </div>
+      <div class="modal-sub" id="syncStatusLine">Not synced yet.</div>
+      <div class="modal-actions">
+        <button type="button" class="primary" id="syncNowBtn">Sync now</button>
+        <button type="button" id="syncDisconnectBtn">Disconnect this device</button>
+      </div>
+
+      <div class="sync-divider">— instant push (optional) —</div>
+      <div class="modal-sub">Without this, both devices still sync automatically every 30 seconds. Adding it makes updates appear instantly, over a live WebSocket connection, instead of waiting.</div>
+      <div class="sync-field">
+        <label>Ably API Key <span class="realtime-badge off" id="realtimeBadge">Polling only</span></label>
+        <input type="password" id="syncAblyKeyInput" placeholder="Paste your Ably API key">
+      </div>
+      <div class="modal-sub">Don't have one? <a href="https://ably.com/signup" target="_blank" rel="noopener">Create a free Ably account</a>, then copy the API key from your app's dashboard (needs publish + subscribe capability).</div>
+      <div class="sync-actions-row">
+        <button type="button" class="save-btn" id="saveAblyKeyBtn">Save & enable instant sync</button>
+      </div>
+    </div>
+
+    <button type="button" class="modal-close" id="closeSyncBtn">Close</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="manageTagsModal">
+  <div class="modal-card">
+    <h3>Manage tags</h3>
+    <div class="modal-sub">Rename a tag everywhere it's used, or remove it entirely.</div>
+    <div id="manageTagsList"></div>
+    <button type="button" class="modal-close" id="closeManageTagsBtn">Close</button>
+  </div>
+</div>
+
 <script>
 (function(){
   const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  const APP_VERSION = '2.0.0';
+  const APP_VERSION = '2.2.0';
   let entries = [];
   let viewYear, viewMonth;
   let selectedDate = fmt(new Date());
@@ -1008,6 +1145,12 @@
   const UI_KEY = 'rally.ui.v1';
   const THEME_KEY = 'rally.theme';
   const LIFETIME_KEY = 'rally.lifetimeCompleted';
+  const SYNC_APIKEY_KEY = 'rally.sync.apiKey';
+  const SYNC_BINID_KEY = 'rally.sync.binId';
+  const SYNC_LASTSYNC_KEY = 'rally.sync.lastSyncAt';
+  const ABLY_KEY_KEY = 'rally.sync.ablyKey';
+  const DEVICE_ID_KEY = 'rally.deviceId';
+  const JSONBIN_BASE = 'https://api.jsonbin.io/v3/b';
   const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
 
   async function loadEntries(){
@@ -1017,24 +1160,30 @@
     }catch(e){
       entries = [];
     }
-    // backfill fields for entries saved before tags/recurring/archive existed
+    // backfill fields for entries saved before tags/recurring/archive/sync existed
     entries.forEach(e=>{
-      if(e.tag === undefined) e.tag = null;
+      if(e.tags === undefined){ e.tags = e.tag ? [e.tag] : []; }
+      if(e.tag !== undefined){ delete e.tag; }
       if(e.deletedAt === undefined) e.deletedAt = null;
       if(e.completedAt === undefined) e.completedAt = (e.done ? Date.now() : null);
       if(e.recurring === undefined) e.recurring = null;
       if(e.seriesId === undefined) e.seriesId = null;
+      if(e.updatedAt === undefined) e.updatedAt = e.createdAt || Date.now();
     });
     let changed = processRecurring();
     if(cleanupExpired()) changed = true;
-    if(changed){ await saveEntries(); }
+    if(changed){ await persistLocal(); }
   }
-  async function saveEntries(){
+  async function persistLocal(){
     try{
       localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
     }catch(err){
       console.error('Rally: could not save to local storage', err);
     }
+  }
+  async function saveEntries(){
+    await persistLocal();
+    scheduleSyncPush();
   }
   function cleanupExpired(){
     const now = Date.now();
@@ -1045,6 +1194,177 @@
       return true;
     });
     return entries.length !== before;
+  }
+
+  // ---- Sync (jsonbin.io relay between devices) ----
+  let syncTimer = null;
+  let syncIntervalHandle = null;
+  let syncInFlight = false;
+  let syncStatus = { state: 'none', message: '' }; // none | ok | error | syncing
+
+  function getSyncApiKey(){ return localStorage.getItem(SYNC_APIKEY_KEY) || ''; }
+  function getSyncBinId(){ return localStorage.getItem(SYNC_BINID_KEY) || ''; }
+  function isSyncConfigured(){ return !!(getSyncApiKey() && getSyncBinId()); }
+  function setSyncConfig(apiKey, binId){
+    try{
+      localStorage.setItem(SYNC_APIKEY_KEY, apiKey);
+      localStorage.setItem(SYNC_BINID_KEY, binId);
+    }catch(e){}
+  }
+  function clearSyncConfig(){
+    try{
+      localStorage.removeItem(SYNC_APIKEY_KEY);
+      localStorage.removeItem(SYNC_BINID_KEY);
+      localStorage.removeItem(SYNC_LASTSYNC_KEY);
+    }catch(e){}
+    clearAblyKey();
+  }
+  function mergeEntries(local, remote){
+    const map = new Map();
+    local.forEach(e => map.set(e.id, e));
+    remote.forEach(re=>{
+      const le = map.get(re.id);
+      if(!le){ map.set(re.id, re); }
+      else{
+        const lu = le.updatedAt || le.createdAt || 0;
+        const ru = re.updatedAt || re.createdAt || 0;
+        if(ru > lu){ map.set(re.id, re); }
+      }
+    });
+    return Array.from(map.values());
+  }
+  function timeAgo(ts){
+    const diff = Math.max(0, Date.now() - ts);
+    const mins = Math.floor(diff / 60000);
+    if(mins < 1) return 'just now';
+    if(mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if(hrs < 24) return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
+  }
+  function scheduleSyncPush(){
+    if(!isSyncConfigured()) return;
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(()=>{ syncNow(); }, 1500);
+  }
+  function startSyncLoop(){
+    stopSyncLoop();
+    if(!isSyncConfigured()) return;
+    syncIntervalHandle = setInterval(()=>{ syncNow(); }, 30000);
+    connectRealtime();
+  }
+  function stopSyncLoop(){
+    if(syncIntervalHandle){ clearInterval(syncIntervalHandle); syncIntervalHandle = null; }
+    disconnectRealtime();
+  }
+  async function syncNow(){
+    if(!isSyncConfigured() || syncInFlight) return;
+    syncInFlight = true;
+    syncStatus = { state: 'syncing', message: 'Syncing…' };
+    updateSyncUI();
+    try{
+      const apiKey = getSyncApiKey();
+      const binId = getSyncBinId();
+      const getRes = await fetch(`${JSONBIN_BASE}/${binId}/latest`, {
+        headers: { 'X-Master-Key': apiKey }
+      });
+      let remoteEntries = [];
+      if(getRes.ok){
+        const data = await getRes.json();
+        remoteEntries = (data.record && Array.isArray(data.record.entries)) ? data.record.entries : [];
+      } else if(getRes.status !== 404){
+        throw new Error('Could not reach the synced list — check your Master Key and Sync Code.');
+      }
+      entries = mergeEntries(entries, remoteEntries);
+      await persistLocal();
+      const putRes = await fetch(`${JSONBIN_BASE}/${binId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-Master-Key': apiKey },
+        body: JSON.stringify({ entries, syncedAt: Date.now() })
+      });
+      if(!putRes.ok){ throw new Error('Could not push updates to the synced list.'); }
+      try{ localStorage.setItem(SYNC_LASTSYNC_KEY, String(Date.now())); }catch(e){}
+      syncStatus = { state: 'ok', message: 'Synced' };
+      notifyRealtime();
+      refreshUI();
+    }catch(err){
+      syncStatus = { state: 'error', message: (err && err.message) || 'Sync failed' };
+    } finally {
+      syncInFlight = false;
+      updateSyncUI();
+    }
+  }
+  function updateSyncUI(){
+    const dot = document.getElementById('syncDot');
+    if(dot){
+      if(!isSyncConfigured()){
+        dot.style.display = 'none';
+      } else {
+        dot.style.display = '';
+        dot.className = 'sync-dot ' + (syncStatus.state === 'error' ? 'error' : (syncStatus.state === 'syncing' ? 'syncing' : (realtimeStatus === 'live' ? 'live' : 'ok')));
+      }
+    }
+    const statusLine = document.getElementById('syncStatusLine');
+    if(statusLine){
+      if(syncStatus.state === 'error'){
+        statusLine.textContent = syncStatus.message;
+      } else if(syncStatus.state === 'syncing'){
+        statusLine.textContent = 'Syncing…';
+      } else {
+        const last = localStorage.getItem(SYNC_LASTSYNC_KEY);
+        const base = last ? `Last synced ${timeAgo(parseInt(last, 10))}` : 'Not synced yet.';
+        statusLine.textContent = base + (realtimeStatus === 'live' ? ' · instant push is live' : '');
+      }
+    }
+    const badge = document.getElementById('realtimeBadge');
+    if(badge){
+      badge.className = 'realtime-badge' + (realtimeStatus === 'live' ? '' : ' off');
+      badge.textContent = realtimeStatus === 'live' ? 'Instant' : (realtimeStatus === 'connecting' ? 'Connecting…' : (realtimeStatus === 'error' ? 'Connection error' : 'Polling only'));
+    }
+  }
+
+  // ---- Realtime instant push (Ably, layered on top of the jsonbin sync above) ----
+  let ablyClient = null;
+  let ablyChannel = null;
+  let realtimeStatus = 'none'; // none | connecting | live | error
+  function getDeviceId(){
+    let id = null;
+    try{ id = localStorage.getItem(DEVICE_ID_KEY); }catch(e){}
+    if(!id){ id = uid(); try{ localStorage.setItem(DEVICE_ID_KEY, id); }catch(e){} }
+    return id;
+  }
+  function getAblyKey(){ return localStorage.getItem(ABLY_KEY_KEY) || ''; }
+  function setAblyKey(key){ try{ localStorage.setItem(ABLY_KEY_KEY, key); }catch(e){} }
+  function clearAblyKey(){ try{ localStorage.removeItem(ABLY_KEY_KEY); }catch(e){} }
+  function connectRealtime(){
+    disconnectRealtime();
+    const key = getAblyKey();
+    const binId = getSyncBinId();
+    if(!key || !binId || typeof Ably === 'undefined') return;
+    try{
+      realtimeStatus = 'connecting';
+      ablyClient = new Ably.Realtime({ key: key, clientId: getDeviceId(), echoMessages: false });
+      ablyChannel = ablyClient.channels.get('rally-sync-' + binId);
+      ablyChannel.subscribe('update', ()=>{ syncNow(); });
+      ablyClient.connection.on('connected', ()=>{ realtimeStatus = 'live'; updateSyncUI(); });
+      ablyClient.connection.on('disconnected', ()=>{ realtimeStatus = 'error'; updateSyncUI(); });
+      ablyClient.connection.on('suspended', ()=>{ realtimeStatus = 'error'; updateSyncUI(); });
+      ablyClient.connection.on('failed', ()=>{ realtimeStatus = 'error'; updateSyncUI(); });
+      updateSyncUI();
+    }catch(e){
+      realtimeStatus = 'error';
+      updateSyncUI();
+    }
+  }
+  function disconnectRealtime(){
+    if(ablyChannel){ try{ ablyChannel.unsubscribe(); }catch(e){} ablyChannel = null; }
+    if(ablyClient){ try{ ablyClient.close(); }catch(e){} ablyClient = null; }
+    realtimeStatus = 'none';
+  }
+  function notifyRealtime(){
+    if(ablyChannel){
+      try{ ablyChannel.publish('update', { ts: Date.now() }); }catch(e){}
+    }
   }
 
   // ---- Recurring chores/reminders ----
@@ -1083,9 +1403,9 @@
           const clone = {
             id: uid(), type: latest.type, text: latest.text, date: due,
             time: latest.type === 'task' ? (latest.time || null) : undefined,
-            done: false, completedAt: null, tag: latest.tag || null,
+            done: false, completedAt: null, tags: Array.isArray(latest.tags) ? [...latest.tags] : [],
             recurring: latest.recurring, seriesId: sid, deletedAt: null,
-            createdAt: Date.now()
+            createdAt: Date.now(), updatedAt: Date.now()
           };
           entries.push(clone);
           instances.push(clone);
@@ -1101,10 +1421,12 @@
     // Top 3 most-used tags first, then the remainder alphabetically.
     const counts = new Map();
     entries.forEach(e=>{
-      if(e.tag && !e.deletedAt){
-        const key = e.tag.toLowerCase();
-        if(!counts.has(key)) counts.set(key, { label: e.tag, count: 0 });
-        counts.get(key).count++;
+      if(Array.isArray(e.tags) && !e.deletedAt){
+        e.tags.forEach(t=>{
+          const key = t.toLowerCase();
+          if(!counts.has(key)) counts.set(key, { label: t, count: 0 });
+          counts.get(key).count++;
+        });
       }
     });
     const all = Array.from(counts.values());
@@ -1113,6 +1435,82 @@
     const top3Keys = new Set(top3.map(x => x.label.toLowerCase()));
     const rest = all.filter(x => !top3Keys.has(x.label.toLowerCase())).sort((a,b)=> a.label.localeCompare(b.label));
     return [...top3, ...rest].map(x => x.label);
+  }
+
+  // ---- Manage tags (rename / delete everywhere) ----
+  function renameTag(oldTag, newTag){
+    const now = Date.now();
+    entries.forEach(e=>{
+      if(!Array.isArray(e.tags)) return;
+      const idx = e.tags.findIndex(t => t.toLowerCase() === oldTag.toLowerCase());
+      if(idx === -1) return;
+      const dupe = e.tags.some((t,i) => i !== idx && t.toLowerCase() === newTag.toLowerCase());
+      if(dupe){ e.tags.splice(idx, 1); } else { e.tags[idx] = newTag; }
+      e.updatedAt = now;
+    });
+    if(activeTagFilter && activeTagFilter.toLowerCase() === oldTag.toLowerCase()){ activeTagFilter = newTag; }
+  }
+  function deleteTagEverywhere(tag){
+    const now = Date.now();
+    entries.forEach(e=>{
+      if(!Array.isArray(e.tags)) return;
+      if(e.tags.some(t => t.toLowerCase() === tag.toLowerCase())){
+        e.tags = e.tags.filter(t => t.toLowerCase() !== tag.toLowerCase());
+        e.updatedAt = now;
+      }
+    });
+    if(activeTagFilter && activeTagFilter.toLowerCase() === tag.toLowerCase()){ activeTagFilter = null; }
+  }
+  function renderManageTagsModal(){
+    const wrap = document.getElementById('manageTagsList');
+    wrap.innerHTML = '';
+    const tags = [...getAllTags()].sort((a,b)=> a.localeCompare(b));
+    if(!tags.length){
+      wrap.innerHTML = '<div class="empty-state">No tags yet.</div>';
+      return;
+    }
+    tags.forEach(tag=>{
+      const count = entries.filter(e => Array.isArray(e.tags) && e.tags.some(t => t.toLowerCase() === tag.toLowerCase()) && !e.deletedAt).length;
+      const row = document.createElement('div');
+      row.className = 'manage-tag-row';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'mt-rename';
+      input.value = tag;
+      input.maxLength = 24;
+      const countSpan = document.createElement('span');
+      countSpan.className = 'mt-count';
+      countSpan.textContent = count + (count === 1 ? ' use' : ' uses');
+      const saveBtn = document.createElement('button');
+      saveBtn.type = 'button';
+      saveBtn.textContent = 'Save';
+      const deleteBtn = document.createElement('button');
+      deleteBtn.type = 'button';
+      deleteBtn.className = 'danger';
+      deleteBtn.textContent = 'Delete';
+      row.appendChild(input);
+      row.appendChild(countSpan);
+      row.appendChild(saveBtn);
+      row.appendChild(deleteBtn);
+      wrap.appendChild(row);
+
+      saveBtn.addEventListener('click', async ()=>{
+        const newVal = input.value.trim().slice(0, 24);
+        if(!newVal || newVal.toLowerCase() === tag.toLowerCase()) return;
+        renameTag(tag, newVal);
+        await saveEntries();
+        renderManageTagsModal();
+        refreshUI();
+      });
+      deleteBtn.addEventListener('click', async ()=>{
+        const ok = confirm(`Delete the tag "#${tag}"? It will be removed from ${count} ${count === 1 ? 'entry' : 'entries'}. This can't be undone.`);
+        if(!ok) return;
+        deleteTagEverywhere(tag);
+        await saveEntries();
+        renderManageTagsModal();
+        refreshUI();
+      });
+    });
   }
 
   // ---- Lifetime completed counter (survives 30-day archive purge) ----
@@ -1231,6 +1629,7 @@
         const wasDone = e.done;
         e.done = !e.done;
         e.completedAt = e.done ? Date.now() : null;
+        e.updatedAt = Date.now();
         if(!wasDone && e.done){ incrementLifetimeCompleted(); }
         await saveEntries();
         refreshUI();
@@ -1308,14 +1707,21 @@
       meta.appendChild(recurBtn);
     }
 
+    if(!Array.isArray(e.tags)) e.tags = [];
+    e.tags.forEach(t=>{
+      const pill = document.createElement('span');
+      pill.className = 'tag-chip tag-pill-display';
+      pill.textContent = '#' + t;
+      meta.appendChild(pill);
+    });
     const tagBtn = document.createElement('button');
     tagBtn.type = 'button';
-    tagBtn.className = 'entry-tag-btn' + (e.tag ? ' has-tag' : '');
-    tagBtn.textContent = e.tag ? ('#' + e.tag) : '+ tag';
+    tagBtn.className = 'entry-tag-btn';
+    tagBtn.textContent = '+ tag';
     tagBtn.addEventListener('click', (ev)=>{
       ev.stopPropagation();
       const key = 'tag:' + e.id;
-      if(openPopoverKey === key){ closePopovers(); return; }
+      if(openPopoverKey === key){ closePopovers(); refreshUI(); return; }
       openTagPicker(e.id, row);
     });
     meta.appendChild(tagBtn);
@@ -1330,10 +1736,25 @@
       moveBtn.addEventListener('click', async (ev)=>{
         ev.stopPropagation();
         e.date = nowStr;
+        e.updatedAt = Date.now();
         await saveEntries();
         refreshUI();
       });
       row.appendChild(moveBtn);
+    }
+
+    if(e.type === 'task' && !e.done){
+      const laterBtn = document.createElement('button');
+      laterBtn.className = 'move-today';
+      laterBtn.textContent = '→ later';
+      laterBtn.title = 'Reschedule to a different date or time';
+      laterBtn.addEventListener('click', (ev)=>{
+        ev.stopPropagation();
+        const key = 'later:' + e.id;
+        if(openPopoverKey === key){ closePopovers(); return; }
+        openReschedule(e.id, row);
+      });
+      row.appendChild(laterBtn);
     }
 
     if(e.type === 'chore' && !e.done){
@@ -1356,6 +1777,7 @@
     del.title = 'Delete';
     del.addEventListener('click', async ()=>{
       e.deletedAt = Date.now();
+      e.updatedAt = Date.now();
       await saveEntries();
       refreshUI();
     });
@@ -1417,19 +1839,22 @@
     closePopovers();
     const entry = entries.find(x => x.id === entryId);
     if(!entry) return;
-    const tags = getAllTags();
+    if(!Array.isArray(entry.tags)) entry.tags = [];
+    const allTags = getAllTags();
     const form = document.createElement('div');
     form.className = 'quick-form open tag-picker-form';
-    const chipsHtml = tags.map(t => `<button type="button" class="tag-chip" data-tag="${escapeHtml(t)}">${escapeHtml(t)}</button>`).join('');
+    const chipsHtml = allTags.map(t=>{
+      const active = entry.tags.some(x => x.toLowerCase() === t.toLowerCase());
+      return `<button type="button" class="tag-chip${active ? ' active' : ''}" data-tag="${escapeHtml(t)}">${escapeHtml(t)}</button>`;
+    }).join('');
     form.innerHTML = `
-      ${tags.length ? `<div class="tag-chip-row">${chipsHtml}</div>` : ''}
+      ${allTags.length ? `<div class="tag-chip-row">${chipsHtml}</div>` : ''}
       <div class="new-tag-row">
         <input type="text" class="tf-new" placeholder="New category…" maxlength="24">
         <button type="button" class="save-btn tf-save">Add</button>
       </div>
       <div class="form-actions">
-        ${entry.tag ? '<button type="button" class="tf-remove">Remove tag</button>' : ''}
-        <button type="button" class="tf-cancel">Cancel</button>
+        <button type="button" class="tf-done">Done</button>
       </div>
     `;
     anchorRow.insertAdjacentElement('afterend', form);
@@ -1437,26 +1862,27 @@
 
     form.querySelectorAll('.tag-chip').forEach(chip=>{
       chip.addEventListener('click', async ()=>{
-        entry.tag = chip.dataset.tag;
+        const label = chip.dataset.tag;
+        const idx = entry.tags.findIndex(x => x.toLowerCase() === label.toLowerCase());
+        if(idx >= 0){ entry.tags.splice(idx, 1); chip.classList.remove('active'); }
+        else { entry.tags.push(label); chip.classList.add('active'); }
+        entry.updatedAt = Date.now();
         await saveEntries();
-        refreshUI();
       });
     });
-    form.querySelector('.tf-cancel').addEventListener('click', closePopovers);
-    const removeBtn = form.querySelector('.tf-remove');
-    if(removeBtn){
-      removeBtn.addEventListener('click', async ()=>{
-        entry.tag = null;
-        await saveEntries();
-        refreshUI();
-      });
-    }
-    const saveNew = async ()=>{
-      const val = form.querySelector('.tf-new').value.trim();
-      if(!val) return;
-      entry.tag = val.slice(0, 24);
-      await saveEntries();
+    form.querySelector('.tf-done').addEventListener('click', ()=>{
+      closePopovers();
       refreshUI();
+    });
+    const saveNew = async ()=>{
+      const val = form.querySelector('.tf-new').value.trim().slice(0, 24);
+      if(!val) return;
+      if(!entry.tags.some(x => x.toLowerCase() === val.toLowerCase())){
+        entry.tags.push(val);
+        entry.updatedAt = Date.now();
+        await saveEntries();
+      }
+      openTagPicker(entryId, anchorRow);
     };
     form.querySelector('.tf-save').addEventListener('click', saveNew);
     form.querySelector('.tf-new').addEventListener('keydown', (ev)=>{
@@ -1492,6 +1918,7 @@
         const val = btn.dataset.recur || null;
         entry.recurring = val;
         entry.seriesId = val ? (entry.seriesId || entry.id) : null;
+        entry.updatedAt = Date.now();
         await saveEntries();
         refreshUI();
       });
@@ -1522,6 +1949,7 @@
       const val = ta.value.trim();
       if(!val) return;
       entry.text = val;
+      entry.updatedAt = Date.now();
       await saveEntries();
       refreshUI();
     });
@@ -1556,13 +1984,14 @@
       if(!dateVal) return;
       const entry = entries.find(x => x.id === entryId);
       if(entry){
+        const wasChore = entry.type === 'chore';
         entry.type = 'task';
         entry.date = dateVal;
         entry.time = timeVal || null;
         entry.done = false;
         entry.completedAt = null;
-        entry.recurring = null;
-        entry.seriesId = null;
+        if(wasChore){ entry.recurring = null; entry.seriesId = null; }
+        entry.updatedAt = Date.now();
         await saveEntries();
       }
       refreshUI();
@@ -1660,8 +2089,10 @@
     // Tag filter row
     const allTags = getAllTags();
     const filterRow = document.getElementById('tagFilterRow');
+    const manageBtn = document.getElementById('manageTagsBtn');
     if(allTags.length){
       filterRow.style.display = '';
+      manageBtn.style.display = '';
       filterRow.innerHTML = '';
       const allBtn = document.createElement('button');
       allBtn.className = 'tag-chip' + (activeTagFilter === null ? ' active' : '');
@@ -1677,9 +2108,10 @@
       });
     } else {
       filterRow.style.display = 'none';
+      manageBtn.style.display = 'none';
       activeTagFilter = null;
     }
-    const tagMatch = (e) => !activeTagFilter || (e.tag && e.tag.toLowerCase() === activeTagFilter.toLowerCase());
+    const tagMatch = (e) => !activeTagFilter || (Array.isArray(e.tags) && e.tags.some(t => t.toLowerCase() === activeTagFilter.toLowerCase()));
 
     // Chore chart: due today or carried over (incomplete, any past date) + today's completed
     const chores = entries
@@ -1769,14 +2201,21 @@
     const nowStr = fmt(todayDate);
     dateSpan.textContent = e.date === nowStr ? 'today' : (niceDate(e.date).split(',')[0] + ' ' + parseYMD(e.date).getDate());
     meta.appendChild(dateSpan);
+    if(!Array.isArray(e.tags)) e.tags = [];
+    e.tags.forEach(t=>{
+      const pill = document.createElement('span');
+      pill.className = 'tag-chip tag-pill-display';
+      pill.textContent = '#' + t;
+      meta.appendChild(pill);
+    });
     const tagBtn = document.createElement('button');
     tagBtn.type = 'button';
-    tagBtn.className = 'entry-tag-btn' + (e.tag ? ' has-tag' : '');
-    tagBtn.textContent = e.tag ? ('#' + e.tag) : '+ tag';
+    tagBtn.className = 'entry-tag-btn';
+    tagBtn.textContent = '+ tag';
     tagBtn.addEventListener('click', (ev)=>{
       ev.stopPropagation();
       const key = 'tag:' + e.id;
-      if(openPopoverKey === key){ closePopovers(); return; }
+      if(openPopoverKey === key){ closePopovers(); refreshUI(); return; }
       openTagPicker(e.id, row);
     });
     meta.appendChild(tagBtn);
@@ -1801,6 +2240,7 @@
     del.title = 'Delete';
     del.addEventListener('click', async ()=>{
       e.deletedAt = Date.now();
+      e.updatedAt = Date.now();
       await saveEntries();
       refreshUI();
     });
@@ -1885,16 +2325,16 @@
           }
           if(rest){
             if(section === 'task'){
-              imported.push({ id: uid(), type: 'task', text: rest, date: nowStr, time: time || null, done, completedAt: done ? Date.now() : null, tag: null, recurring: null, seriesId: null, deletedAt: null, createdAt: Date.now() });
+              imported.push({ id: uid(), type: 'task', text: rest, date: nowStr, time: time || null, done, completedAt: done ? Date.now() : null, tags: [], recurring: null, seriesId: null, deletedAt: null, createdAt: Date.now(), updatedAt: Date.now() });
             } else {
-              imported.push({ id: uid(), type: 'chore', text: rest, date: nowStr, done, completedAt: done ? Date.now() : null, tag: null, recurring: null, seriesId: null, deletedAt: null, createdAt: Date.now() });
+              imported.push({ id: uid(), type: 'chore', text: rest, date: nowStr, done, completedAt: done ? Date.now() : null, tags: [], recurring: null, seriesId: null, deletedAt: null, createdAt: Date.now(), updatedAt: Date.now() });
             }
           }
         }
       } else if(section === 'note'){
         const m = line.match(/^•\s*(.*)$/);
         if(m && m[1]){
-          imported.push({ id: uid(), type: 'note', text: m[1], date: nowStr, tag: null, deletedAt: null, createdAt: Date.now() });
+          imported.push({ id: uid(), type: 'note', text: m[1], date: nowStr, tags: [], deletedAt: null, createdAt: Date.now(), updatedAt: Date.now() });
         }
       }
     }
@@ -1934,7 +2374,8 @@
 
     const meta = document.createElement('div');
     meta.className = 'archive-meta';
-    meta.textContent = `${e.type}${e.tag ? ' · #' + e.tag : ''} · ${daysLeft}d left`;
+    const tagsStr = (Array.isArray(e.tags) && e.tags.length) ? ' · ' + e.tags.map(t => '#' + t).join(' ') : '';
+    meta.textContent = `${e.type}${tagsStr} · ${daysLeft}d left`;
     row.appendChild(meta);
 
     const restoreBtn = document.createElement('button');
@@ -1942,6 +2383,7 @@
     restoreBtn.addEventListener('click', async ()=>{
       if(kind === 'completed'){ e.done = false; e.completedAt = null; }
       else { e.deletedAt = null; }
+      e.updatedAt = Date.now();
       await saveEntries();
       renderArchiveModal();
       updateArchiveBadge();
@@ -2034,7 +2476,7 @@
   document.getElementById('noteSave').addEventListener('click', async ()=>{
     const val = document.getElementById('noteText').value.trim();
     if(!val) return;
-    entries.push({ id: uid(), type: 'note', text: val, date: selectedDate, tag: null, deletedAt: null, createdAt: Date.now() });
+    entries.push({ id: uid(), type: 'note', text: val, date: selectedDate, tags: [], deletedAt: null, createdAt: Date.now(), updatedAt: Date.now() });
     await saveEntries();
     closeForms();
     renderAll();
@@ -2043,7 +2485,7 @@
     const val = document.getElementById('taskText').value.trim();
     if(!val) return;
     const time = document.getElementById('taskTime').value;
-    entries.push({ id: uid(), type: 'task', text: val, date: selectedDate, time: time || null, done: false, completedAt: null, tag: null, recurring: null, seriesId: null, deletedAt: null, createdAt: Date.now() });
+    entries.push({ id: uid(), type: 'task', text: val, date: selectedDate, time: time || null, done: false, completedAt: null, tags: [], recurring: null, seriesId: null, deletedAt: null, createdAt: Date.now(), updatedAt: Date.now() });
     await saveEntries();
     closeForms();
     renderAll();
@@ -2113,19 +2555,19 @@
   }
 
   wireInlineAdd('choreInput', 'choreAddBtn', async (val)=>{
-    entries.push({ id: uid(), type: 'chore', text: val, date: fmt(todayDate), done: false, completedAt: null, tag: null, recurring: null, seriesId: null, deletedAt: null, createdAt: Date.now() });
+    entries.push({ id: uid(), type: 'chore', text: val, date: fmt(todayDate), done: false, completedAt: null, tags: [], recurring: null, seriesId: null, deletedAt: null, createdAt: Date.now(), updatedAt: Date.now() });
     await saveEntries();
     refreshUI();
   });
   wireInlineAdd('reminderInput', 'reminderAddBtn', async (val)=>{
     const time = document.getElementById('reminderTimeInput').value;
-    entries.push({ id: uid(), type: 'task', text: val, date: fmt(todayDate), time: time || null, done: false, completedAt: null, tag: null, recurring: null, seriesId: null, deletedAt: null, createdAt: Date.now() });
+    entries.push({ id: uid(), type: 'task', text: val, date: fmt(todayDate), time: time || null, done: false, completedAt: null, tags: [], recurring: null, seriesId: null, deletedAt: null, createdAt: Date.now(), updatedAt: Date.now() });
     document.getElementById('reminderTimeInput').value = '';
     await saveEntries();
     refreshUI();
   });
   wireInlineAdd('noteInlineInput', 'noteAddBtn', async (val)=>{
-    entries.push({ id: uid(), type: 'note', text: val, date: fmt(todayDate), tag: null, deletedAt: null, createdAt: Date.now() });
+    entries.push({ id: uid(), type: 'note', text: val, date: fmt(todayDate), tags: [], deletedAt: null, createdAt: Date.now(), updatedAt: Date.now() });
     await saveEntries();
     refreshUI();
   });
@@ -2190,6 +2632,117 @@
     applyTheme(current === 'dark' ? 'light' : 'dark');
   });
 
+  // ---- Sync modal wiring ----
+  function openSyncModal(){
+    const setup = document.getElementById('syncSetupBlock');
+    const connected = document.getElementById('syncConnectedBlock');
+    if(isSyncConfigured()){
+      setup.style.display = 'none';
+      connected.style.display = '';
+      document.getElementById('syncCodeDisplay').value = getSyncBinId();
+      document.getElementById('syncAblyKeyInput').value = getAblyKey();
+      updateSyncUI();
+    } else {
+      setup.style.display = '';
+      connected.style.display = 'none';
+    }
+    document.getElementById('syncModal').classList.add('open');
+  }
+  function closeSyncModal(){
+    document.getElementById('syncModal').classList.remove('open');
+  }
+  document.getElementById('syncBtn').addEventListener('click', openSyncModal);
+  document.getElementById('closeSyncBtn').addEventListener('click', closeSyncModal);
+  document.getElementById('syncModal').addEventListener('click', (ev)=>{
+    if(ev.target.id === 'syncModal') closeSyncModal();
+  });
+  document.getElementById('syncCreateBtn').addEventListener('click', async ()=>{
+    const apiKey = document.getElementById('syncApiKeyInput').value.trim();
+    if(!apiKey){ alert('Paste your jsonbin.io Master Key first.'); return; }
+    const btn = document.getElementById('syncCreateBtn');
+    const original = btn.textContent;
+    btn.textContent = 'Creating…';
+    btn.disabled = true;
+    try{
+      const res = await fetch(JSONBIN_BASE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Master-Key': apiKey, 'X-Bin-Private': 'true' },
+        body: JSON.stringify({ entries, syncedAt: Date.now() })
+      });
+      if(!res.ok) throw new Error('Could not create a synced list — check your Master Key.');
+      const data = await res.json();
+      const binId = data.metadata && data.metadata.id;
+      if(!binId) throw new Error('Unexpected response creating the synced list.');
+      setSyncConfig(apiKey, binId);
+      startSyncLoop();
+      openSyncModal();
+      syncNow();
+    }catch(err){
+      alert((err && err.message) || 'Could not create a synced list.');
+    } finally {
+      btn.textContent = original;
+      btn.disabled = false;
+    }
+  });
+  document.getElementById('syncJoinBtn').addEventListener('click', async ()=>{
+    const apiKey = document.getElementById('syncApiKeyInput').value.trim();
+    const binId = document.getElementById('syncJoinCodeInput').value.trim();
+    if(!apiKey || !binId){ alert('Enter both your Master Key and a Sync Code.'); return; }
+    setSyncConfig(apiKey, binId);
+    startSyncLoop();
+    openSyncModal();
+    await syncNow();
+  });
+  document.getElementById('syncNowBtn').addEventListener('click', ()=> syncNow());
+  document.getElementById('syncDisconnectBtn').addEventListener('click', ()=>{
+    const ok = confirm('Disconnect this device from syncing? Your local list stays intact — the shared list on the server is not deleted.');
+    if(!ok) return;
+    clearSyncConfig();
+    stopSyncLoop();
+    syncStatus = { state: 'none', message: '' };
+    openSyncModal();
+    updateSyncUI();
+  });
+  document.getElementById('copySyncCodeBtn').addEventListener('click', async ()=>{
+    const btn = document.getElementById('copySyncCodeBtn');
+    try{
+      await navigator.clipboard.writeText(getSyncBinId());
+      const original = btn.textContent;
+      btn.textContent = 'Copied!';
+      setTimeout(()=>{ btn.textContent = original; }, 1400);
+    }catch(e){
+      const input = document.getElementById('syncCodeDisplay');
+      input.focus(); input.select();
+    }
+  });
+  document.getElementById('saveAblyKeyBtn').addEventListener('click', ()=>{
+    const key = document.getElementById('syncAblyKeyInput').value.trim();
+    const btn = document.getElementById('saveAblyKeyBtn');
+    if(!key){
+      clearAblyKey();
+      disconnectRealtime();
+      updateSyncUI();
+      return;
+    }
+    setAblyKey(key);
+    const original = btn.textContent;
+    btn.textContent = 'Connecting…';
+    connectRealtime();
+    setTimeout(()=>{ btn.textContent = original; }, 1200);
+  });
+
+  // ---- Manage tags modal wiring ----
+  document.getElementById('manageTagsBtn').addEventListener('click', ()=>{
+    renderManageTagsModal();
+    document.getElementById('manageTagsModal').classList.add('open');
+  });
+  document.getElementById('closeManageTagsBtn').addEventListener('click', ()=>{
+    document.getElementById('manageTagsModal').classList.remove('open');
+  });
+  document.getElementById('manageTagsModal').addEventListener('click', (ev)=>{
+    if(ev.target.id === 'manageTagsModal') document.getElementById('manageTagsModal').classList.remove('open');
+  });
+
   // ---- Collapsible section wiring ----
   const uiState = loadUiState();
   document.querySelectorAll('.collapse-btn').forEach(btn=>{
@@ -2215,6 +2768,10 @@
     await loadEntries();
     updateArchiveBadge();
     renderAll();
+    if(isSyncConfigured()){
+      startSyncLoop();
+      syncNow();
+    }
   })();
 })();
 </script>
