@@ -1,10 +1,10 @@
 /* Rally service worker: cache-only app shell. No data logic here, so jsonbin/Ably sync is untouched.
    Strategy: serve from cache instantly, refresh the cache in the background (updates show on the next launch). */
-const CACHE = 'rally-v2.4.0';
+const CACHE = 'rally-v2.4.1';
 const SHELL = [
-  './', './Rally.html', './manifest.json',
-  './icons/icon.svg', './icons/icon-192.png', './icons/icon-512.png',
-  './icons/icon-maskable-512.png', './icons/apple-touch-icon.png'
+  './', './index.html', './manifest.json',
+  './icon.svg', './icon-192.png', './icon-512.png',
+  './icon-maskable-512.png', './apple-touch-icon.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -33,7 +33,7 @@ self.addEventListener('fetch', (event) => {
       const refresh = fetch(req).then((res) => {
         if (res && res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); }
         return res;
-      }).catch(() => hit || (req.mode === 'navigate' ? caches.match('./Rally.html') : undefined));
+      }).catch(() => hit || (req.mode === 'navigate' ? caches.match('./index.html') : undefined));
       return hit || refresh;
     })
   );
