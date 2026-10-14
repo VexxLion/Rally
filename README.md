@@ -1,6 +1,6 @@
 # Rally
 
-**v2.4.0** · focus now, get it done
+**v2.4.1** · focus now, get it done
 
 Rally is a calm, mobile-first calendar, reminder, chore and note app built around one idea: capture fast, stay focused, and don't let anything quietly fall through the cracks. It is a single static site (no server, no build step) designed to live on your Android home screen.
 
@@ -16,14 +16,14 @@ Rally is a calm, mobile-first calendar, reminder, chore and note app built aroun
 - **Motion with manners** — checking something off strikes it through and slides it away; sheets slide up; sections fold. All of it switches off if your device asks for reduced motion.
 
 **Planning**
-- **Focus-first Calendar tab** — lands on today's agenda. The month grid sits behind a **Show calendar** button (Rally remembers if you leave it open); picking another day leaves Focus mode so you can see it.
-- **Auto-rollover and late marking** — unfinished chores and reminders carry forward instead of disappearing; a reminder past its time or date is flagged in red.
+- **Focus-first Calendar tab** — lands on today's agenda. With Focus mode on (the default), the Calendar tab shows only today: the month grid sits collapsed behind a **Show calendar** button that peeks for this session only. Picking another day turns Focus mode off (with a toast) so you can see it; the Focus setting itself is remembered across reloads.
+- **Auto-rollover and late marking** — unfinished chores and reminders carry forward instead of disappearing; a reminder past its time or date gets a red left edge and a quiet "Overdue" caption.
 - **Recurring chores and reminders** — daily, weekdays, weekly or monthly; new instances appear as they come due.
 - **Todo tab** — Chore Chart (no date or time needed), Today's Reminders (including anything overdue) and Notes (searchable), each collapsible with the state remembered, plus tag filter chips (your top 3 most-used tags first, then alphabetical).
 - **Multiple tags per entry** — tag anything with as many tags as you like. **Manage tags** (Settings) renames a tag everywhere or deletes it, always asking first.
 - **Reminder notifications (opt-in)** — turn on in Settings. Rally asks the browser for permission once, then notifies when a timed reminder comes due (no duplicates, optional chime). Reminders with no time never notify. Notifications only fire while Rally is open, and the Settings sheet says so.
 - **Delete with Undo** — deleting shows an 8-second Undo; everything also stays restorable from the Archive for 30 days.
-- **Archive tab** — restore or permanently delete (with a confirmation); items purge 30 days after completion or deletion. A **lifetime completed** counter survives the purge, is kept per device so it adds up across synced devices, and catches up with completed items already on record.
+- **Archive tab** — restore or permanently delete (with a confirmation); items are removed automatically 30 days after completion or deletion. A **lifetime completed** counter survives the removal, is kept per device so it adds up across synced devices, and catches up with completed items already on record.
 
 **Sharing and sync**
 - **Share / Import** — share today's list as plain text (native share sheet, or copy / SMS fallback). Import shows a live preview ("Found 3 chores, 1 reminder, 2 notes") and adds nothing until you tap Import.
@@ -39,23 +39,23 @@ Rally is a Progressive Web App, so on Android it can be installed like a real ap
 
 1. Put these files together in the same folder of your repo (keep the folder structure):
    ```
-   Rally.html
+   index.html
    manifest.json
    sw.js
-   icons/icon.svg
-   icons/icon-192.png
-   icons/icon-512.png
-   icons/icon-maskable-512.png
-   icons/apple-touch-icon.png
+   icon.svg
+   icon-192.png
+   icon-512.png
+   icon-maskable-512.png
+   apple-touch-icon.png
    ```
-2. Turn on GitHub Pages for the repo (Settings → Pages) and open `https://<you>.github.io/<repo>/Rally.html` in **Chrome on Android**.
+2. Turn on GitHub Pages for the repo (Settings → Pages) and open `https://<you>.github.io/<repo>/index.html` in **Chrome on Android**.
 3. Chrome menu (⋮) → **Install app** (or **Add to Home screen**). Rally gets its own icon and opens full screen with no browser bar.
 
 Good to know:
 - **Offline:** after the first visit Rally opens instantly from a cache and works offline (viewing and adding). Sync catches up when you are back online.
 - **Updates:** the cache refreshes in the background, so a new version shows up the *next* time you open the app.
-- **Renaming the page:** if you rename `Rally.html` (for example to `index.html`), also change `start_url` and `id` in `manifest.json` and the file list at the top of `sw.js`.
-- Opening `Rally.html` straight from your phone's storage still works as a normal page, but installing, offline mode and notifications need the https address.
+- **Renaming / moving files:** the PWA manifest (`start_url`, `id`) and the service worker file list point at `index.html` and the root-level icon files — if you rename or move files, update those references to match.
+- Opening `index.html` straight from your phone's storage still works as a normal page, but installing, offline mode and notifications need the https address.
 
 ## Tech stack
 
@@ -81,6 +81,13 @@ Known limitation: permanently deleting an item from the Archive ("Delete forever
 
 ## Changelog
 
+### v2.4.1
+- Focus Mode fixed: with Focus on, the Calendar tab now really shows only today (grid auto-collapses); the Focus setting persists across reloads; "Show calendar" is a session-only peek; picking another day turns Focus off with a toast instead of silently
+- PWA launch fixed: manifest `start_url`/`id` now point at `index.html` (was a 404ing `Rally.html`); manifest, page, and service worker icon paths corrected to the real root-level files; service worker cache bumped
+- Quieter status: "CARRIED OVER" header and "Overdue"/"Late" captions are now quiet secondary text (red left edge on overdue cards kept as the signal)
+- Archive wording: rows now say "removed <date>" instead of "purges <date>", matching the Archive subtitle
+- No changes to the data model, sync logic or Ably integration
+
 ### v2.4.0
 - Visual redesign: design-token system (one teal accent, light and dark by swapping tokens), system fonts with a 3-size type scale, inline SVG icons instead of text glyphs, cards with soft shadows
 - Bottom tab bar (Calendar / Todo / Archive) on every screen size; Archive is now a tab; content in a centered ~640px column on wide screens
@@ -99,7 +106,7 @@ Known limitation: permanently deleting an item from the Archive ("Delete forever
 - Add forms now include repeat and tags (Calendar reminder form also gets a date field); comma-separated tags with suggestions
 - Focus mode shows a "Show calendar" button instead of hiding the calendar; state remembered
 - Delete now shows an Undo toast; "Delete forever" asks for confirmation
-- Date labels read "Sat, Oct 3" (year added when not current); carry-over help text explains the label; Archive shows purge dates
+- Date labels read "Sat, Oct 3" (year added when not current); carry-over help text explains the label; Archive shows removal dates
 - Import shows a live preview with per-type counts and requires an explicit Import tap
 - "New category…" renamed to "New tag…"
 - Popovers and the note Edit button restyled; reschedule shows a readable date
@@ -128,7 +135,7 @@ Known limitation: permanently deleting an item from the Archive ("Delete forever
 - Notes editable after saving
 
 ### v1.x (earlier, unversioned iterations)
-- Standalone `localStorage` persistence, tags, Archive with 30-day auto-purge and restore
+- Standalone `localStorage` persistence, tags, Archive with 30-day auto-removal and restore
 - Share/export to plain text with native share sheet and SMS fallback
 - Todo List page: Chore Chart, Today's Reminders, Notes; chore carry-over and reschedule
 - Focus-first default view; app renamed to Rally; original calendar + notes + reminders release
