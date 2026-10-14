@@ -2,1150 +2,519 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Rally</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,ital@9..144,500;9..144,600;9..144,700;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#faf9f7">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Rally">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <script src="https://cdn.ably.com/lib/ably.min-2.js"></script>
 <style>
+  /* =========================================================
+     Rally v2.4.0 — tokens first. Every color below comes from here.
+     ========================================================= */
   :root{
-    --paper: #EFEDE5;
-    --paper-raised: #F8F6F0;
-    --ink: #21261F;
-    --ink-soft: #6A6F63;
-    --ink-faint: #A6A99A;
-    --line: #DAD5C6;
-    --line-strong: #C7C1AE;
-    --task: #9C5B3C;
-    --task-soft: #F0DDCE;
-    --note: #3F6259;
-    --note-soft: #DCE7E1;
-    --gold: #B98A2E;
-    --gold-soft: #F1E3C2;
-    --danger: #A6392F;
-    --radius: 3px;
-    color-scheme: light;
+    --bg:#faf9f7;
+    --surface:#ffffff;
+    --surface-2:#f3f1ec;
+    --ink:#1c1b1a;
+    --ink-2:#6b6862;
+    --ink-3:#76726a;
+    --line:#e7e3da;
+    --accent:#0f766e;
+    --accent-ink:#ffffff;
+    --accent-soft:#e0f0ee;
+    --danger:#b3261e;
+    --gold:#b8860b;
+    --task:#b4572f;
+    --note:#2f7f78;
+    --scrim:rgba(28,27,26,.45);
+    --radius:14px;
+    --radius-sm:9px;
+    --gap:16px;
+    --shadow:0 1px 2px rgba(28,27,26,.06), 0 4px 16px rgba(28,27,26,.06);
+    --font:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+    --tabbar-h:64px;
+    --ease:cubic-bezier(.2,.7,.2,1);
+    color-scheme:light;
   }
-  :root[data-theme="dark"]{
-    --paper: #1B1E19;
-    --paper-raised: #23271F;
-    --ink: #EDEAE0;
-    --ink-soft: #A7AA9C;
-    --ink-faint: #6B6E62;
-    --line: #33362C;
-    --line-strong: #454838;
-    --task: #D98B5F;
-    --task-soft: #4A3324;
-    --note: #7FB3A3;
-    --note-soft: #23352F;
-    --gold: #D9AF5D;
-    --gold-soft: #3A2F18;
-    --danger: #E8776A;
-    color-scheme: dark;
+  [data-theme="dark"]{
+    --bg:#141311;
+    --surface:#1e1d1b;
+    --surface-2:#2a2926;
+    --ink:#f2efe9;
+    --ink-2:#b9b4aa;
+    --ink-3:#8f8a80;
+    --line:#33312d;
+    --accent:#2dd4bf;
+    --accent-ink:#0b2b28;
+    --accent-soft:#16312e;
+    --danger:#f2857d;
+    --gold:#e0b341;
+    --task:#e58a5f;
+    --note:#5fc4b8;
+    --scrim:rgba(0,0,0,.6);
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.3);
+    color-scheme:dark;
   }
-  body{ transition: background .15s ease, color .15s ease; }
-  *{box-sizing:border-box; margin:0; padding:0;}
+
+  /* ---------- base ---------- */
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html{ scroll-padding-top:84px; -webkit-text-size-adjust:100%; }
   body{
-    background: var(--paper);
-    color: var(--ink);
-    font-family: 'IBM Plex Sans', sans-serif;
-    min-height: 100vh;
+    background:var(--bg); color:var(--ink);
+    font-family:var(--font); font-size:15px; line-height:1.45; font-weight:400;
+    min-height:100vh; -webkit-tap-highlight-color:transparent;
+    transition:background .2s var(--ease), color .2s var(--ease);
   }
-  ::selection{ background: var(--gold-soft); }
-  .app{
-    max-width: 1080px;
-    margin: 0 auto;
-    padding: 40px 28px 80px;
-  }
+  button{ font:inherit; color:inherit; background:none; border:0; cursor:pointer; text-align:inherit; }
+  input, select, textarea{ font:inherit; color:var(--ink); }
+  a{ color:var(--accent); }
+  h1, h3{ font-size:20px; font-weight:700; letter-spacing:-0.01em; }
+  ::selection{ background:var(--accent-soft); }
+  :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+  .ic{ width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; flex:none; }
+  .ic-sm{ width:14px; height:14px; stroke-width:3; }
+  .ic-xs{ width:13px; height:13px; }
+  .ic-lg{ width:28px; height:28px; }
+  .caption{ font-size:12.5px; color:var(--ink-3); }
+  .hidden{ display:none !important; }
 
-  /* ---------- Header ---------- */
-  header{
-    display:flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    border-bottom: 1px solid var(--line-strong);
-    padding-bottom: 18px;
-    margin-bottom: 30px;
-    flex-wrap: wrap;
-    gap: 16px;
+  /* ---------- shell: sticky header, bottom tab bar ---------- */
+  .app{ max-width:640px; margin:0 auto; padding:0 16px calc(var(--tabbar-h) + 28px + env(safe-area-inset-bottom)); }
+  .app-header{
+    position:sticky; top:0; z-index:30; background:var(--bg);
+    margin:0 -16px; padding:calc(12px + env(safe-area-inset-top)) 16px 10px;
+    display:flex; align-items:center; gap:8px;
   }
-  .brand h1{
-    font-family:'Fraunces', serif;
-    font-weight: 600;
-    font-size: 34px;
-    letter-spacing: -0.01em;
+  .app-header .titles{ flex:1; min-width:0; }
+  .screen-title{ line-height:1.2; }
+  .screen-sub{ font-size:12.5px; color:var(--ink-3); }
+  .icon-btn{ width:44px; height:44px; border-radius:50%; display:grid; place-items:center; color:var(--ink-2); transition:background .15s var(--ease); }
+  .icon-btn:hover{ background:var(--surface-2); }
+  .btn-add{
+    height:44px; padding:0 18px 0 14px; border-radius:22px; background:var(--accent); color:var(--accent-ink);
+    font-weight:600; display:inline-flex; align-items:center; gap:6px; transition:transform .15s var(--ease);
   }
-  .brand p{
-    font-size: 12.5px;
-    color: var(--ink-soft);
-    margin-top: 4px;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-    font-family: 'IBM Plex Mono', monospace;
-  }
-  .focus-toggle{
-    display:flex; align-items:center; gap:10px;
-    font-family:'IBM Plex Mono', monospace;
-    font-size: 12px;
-    color: var(--ink-soft);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    cursor:pointer;
-    user-select:none;
-  }
-  .switch{
-    width: 38px; height: 20px;
-    border-radius: 20px;
-    background: var(--line-strong);
-    position: relative;
-    transition: background .2s ease;
-    flex-shrink:0;
-  }
-  .switch::after{
-    content:'';
-    position:absolute;
-    top:2px; left:2px;
-    width:16px; height:16px;
-    border-radius:50%;
-    background: var(--paper-raised);
-    transition: transform .2s ease;
-    box-shadow: 0 1px 2px rgba(0,0,0,.2);
-  }
-  .switch.on{ background: var(--gold); }
-  .switch.on::after{ transform: translateX(18px); }
-
-  /* ---------- Layout ---------- */
-  .layout{
-    display:grid;
-    grid-template-columns: 1.3fr 1fr;
-    gap: 26px;
-    align-items:start;
-  }
-  .layout.focused{ grid-template-columns: 1fr; max-width: 560px; margin: 0 auto; }
-  .panel{
-    background: var(--paper-raised);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    padding: 22px;
-  }
-
-  /* ---------- Calendar ---------- */
-  .cal-nav{
-    display:flex; align-items:center; justify-content:space-between;
-    margin-bottom: 16px;
-  }
-  .cal-nav .month-label{
-    font-family:'Fraunces', serif;
-    font-weight: 600;
-    font-size: 19px;
-  }
-  .cal-nav button{
-    background:none; border: 1px solid var(--line-strong);
-    width: 28px; height: 28px;
-    border-radius: var(--radius);
-    color: var(--ink);
-    cursor:pointer;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 14px;
-    line-height:1;
-  }
-  .cal-nav button:hover{ background: var(--paper); }
-  .cal-nav-btns{ display:flex; gap:6px; }
-  .weekdays, .daygrid{
-    display:grid;
-    grid-template-columns: repeat(7, 1fr);
-  }
-  .weekdays div{
-    font-family:'IBM Plex Mono', monospace;
-    font-size: 10.5px;
-    color: var(--ink-faint);
-    text-align:center;
-    padding-bottom: 8px;
-    letter-spacing: 0.05em;
-  }
-  .daycell{
-    aspect-ratio: 1;
-    border: 1px solid transparent;
-    border-radius: var(--radius);
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:flex-start;
-    padding-top: 6px;
-    gap: 4px;
-    cursor:pointer;
-    position:relative;
-    font-family:'IBM Plex Mono', monospace;
-    font-size: 13px;
-    color: var(--ink);
-    transition: background .15s ease, border-color .15s ease;
-  }
-  .daycell:hover{ background: var(--paper); }
-  .daycell.outside{ color: var(--ink-faint); }
-  .daycell.today{ border-color: var(--gold); }
-  .daycell.today .num{ color: var(--gold); font-weight:600; }
-  .daycell.selected{ background: var(--ink); border-color: var(--ink); }
-  .daycell.selected .num{ color: var(--paper); }
-  .dots{ display:flex; gap:3px; }
-  .dot{ width:5px; height:5px; border-radius:50%; }
-  .dot.note{ background: var(--note); }
-  .dot.task{ background: var(--task); }
-  .dot.chore{ background: var(--gold); }
-  .daycell.selected .dot.note{ background: var(--note-soft); }
-  .daycell.selected .dot.task{ background: var(--task-soft); }
-  .daycell.selected .dot.chore{ background: var(--gold-soft); }
-
-  /* ---------- Side panel ---------- */
-  .side-date{
-    font-family:'Fraunces', serif;
-    font-weight: 600;
-    font-size: 21px;
-    margin-bottom: 4px;
-  }
-  .side-sub{
-    font-size: 12px;
-    color: var(--ink-soft);
-    margin-bottom: 18px;
-    font-family:'IBM Plex Mono', monospace;
-  }
-  .entry-btns{
-    display:flex; gap: 10px;
-    margin-bottom: 18px;
-  }
-  .entry-btns button{
-    flex:1;
-    padding: 11px 10px;
-    border-radius: var(--radius);
-    border: 1px solid var(--line-strong);
-    background: var(--paper);
-    font-family: 'IBM Plex Sans', sans-serif;
-    font-weight: 500;
-    font-size: 13px;
-    cursor: pointer;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap: 7px;
-    transition: transform .12s ease, box-shadow .12s ease;
-  }
-  .entry-btns button:hover{ box-shadow: 0 2px 0 var(--line-strong); transform: translateY(-1px); }
-  .entry-btns button:active{ transform: translateY(0); box-shadow:none; }
-  #btnNote{ color: var(--note); border-color: var(--note-soft); }
-  #btnTask{ color: var(--task); border-color: var(--task-soft); }
-  .dotmark{ width:7px; height:7px; border-radius:50%; }
-  #btnNote .dotmark{ background: var(--note); }
-  #btnTask .dotmark{ background: var(--task); }
-
-  .quick-form{
-    display:none;
-    flex-direction:column;
-    gap: 10px;
-    background: var(--paper);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    padding: 14px;
-    margin-bottom: 18px;
-  }
-  .quick-form.open{ display:flex; }
-  .quick-form textarea{
-    resize: vertical;
-    min-height: 54px;
-    font-family: 'IBM Plex Sans', sans-serif;
-    font-size: 13.5px;
-    border: 1px solid var(--line-strong);
-    border-radius: var(--radius);
-    padding: 8px 10px;
-    background: var(--paper-raised);
-    color: var(--ink);
-  }
-  .quick-form textarea:focus, .quick-form input:focus{ outline: 1.5px solid var(--gold); }
-  .quick-form .time-row{ display:flex; align-items:center; gap: 8px; }
-  .quick-form .time-row label{ font-size:12px; color: var(--ink-soft); font-family:'IBM Plex Mono', monospace; }
-  .quick-form input[type="time"]{
-    font-family: 'IBM Plex Mono', monospace;
-    border: 1px solid var(--line-strong);
-    border-radius: var(--radius);
-    padding: 5px 8px;
-    background: var(--paper-raised);
-    color: var(--ink);
-  }
-  .quick-form .form-actions{ display:flex; justify-content:flex-end; gap: 8px; }
-  .quick-form .form-actions button{
-    font-family: 'IBM Plex Sans', sans-serif;
-    font-weight: 500;
-    font-size: 12.5px;
-    padding: 8px 16px;
-    border-radius: var(--radius);
-    cursor:pointer;
-    border: 1px solid var(--line-strong);
-    background: var(--paper-raised);
-    color: var(--ink);
-    transition: background .15s ease, color .15s ease, border-color .15s ease, opacity .15s ease;
-  }
-  .quick-form .form-actions button.save-btn{
-    background: var(--ink);
-    color: var(--paper-raised);
-    border-color: var(--ink);
-    font-weight: 600;
-  }
-  .quick-form .form-actions button.save-btn:hover{ background: #14180F; }
-  .quick-form .form-actions button.save-btn.disabled{
-    background: var(--line);
-    color: var(--ink-faint);
-    border-color: var(--line);
-    cursor: not-allowed;
-    font-weight: 500;
-  }
-  #noteForm .save-btn:not(.disabled){ background: var(--note); border-color: var(--note); }
-  #noteForm .save-btn:not(.disabled):hover{ background: #324F47; }
-  #taskForm .save-btn:not(.disabled){ background: var(--task); border-color: var(--task); }
-  #taskForm .save-btn:not(.disabled):hover{ background: #82492F; }
-  .hint{
-    font-family:'IBM Plex Mono', monospace;
-    font-size: 10.5px;
-    color: var(--ink-faint);
-    margin-right: auto;
-    align-self: center;
-  }
-
-  /* ---------- Agenda list ---------- */
-  .agenda-header{
-    display:flex; justify-content:space-between; align-items:baseline;
-    margin-bottom: 10px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--line);
-  }
-  .agenda-header span{
-    font-family:'IBM Plex Mono', monospace;
-    font-size: 11.5px;
-    color: var(--ink-soft);
-  }
-  .agenda-list{ display:flex; flex-direction:column; gap: 8px; }
-  .entry{
-    display:flex;
-    align-items:flex-start;
-    gap: 10px;
-    padding: 10px 10px;
-    border-radius: var(--radius);
-    border: 1px solid var(--line);
-    background: var(--paper);
-  }
-  .entry.done{ opacity: 0.5; }
-  .entry .marker{
-    width: 16px; height: 16px;
-    flex-shrink:0;
-    margin-top: 1px;
-    border-radius: 4px;
-    border: 1.5px solid var(--task);
-    cursor: pointer;
-    display:flex; align-items:center; justify-content:center;
-  }
-  .entry .marker.checked{ background: var(--task); }
-  .entry .marker.checked::after{ content:'✓'; color: var(--paper-raised); font-size: 11px; line-height:1; }
-  .entry .marker.note-marker{
-    border-radius: 50%;
-    border-color: var(--note);
-    cursor: default;
-  }
-  .entry .marker.note-marker::after{ content:''; width:6px; height:6px; border-radius:50%; background: var(--note); }
-  .entry-body{ flex:1; min-width:0; }
-  .entry-text{ font-size: 13.5px; line-height:1.45; word-break: break-word; }
-  .entry.done .entry-text{ text-decoration: line-through; }
-  .entry-meta{
-    font-family:'IBM Plex Mono', monospace;
-    font-size: 10.5px;
-    color: var(--ink-soft);
-    margin-top: 3px;
-    display:flex; gap:8px;
-  }
-  .entry-meta .overdue{ color: var(--danger); }
-  .entry-del{
-    background:none; border:none; cursor:pointer;
-    color: var(--ink-faint);
-    font-size: 15px;
-    line-height:1;
-    padding: 2px 4px;
-    flex-shrink:0;
-  }
-  .entry-del:hover{ color: var(--danger); }
-  .empty-state{
-    font-size: 12.5px;
-    color: var(--ink-faint);
-    font-style: italic;
-    padding: 14px 4px;
-  }
-
-  /* ---------- Focus mode agenda (all upcoming) ---------- */
-  .focus-progress{
-    font-family:'IBM Plex Mono', monospace;
-    font-size: 11.5px;
-    color: var(--ink-soft);
-    margin-bottom: 4px;
-  }
-  .group-label{
-    font-family:'IBM Plex Mono', monospace;
-    font-size: 10.5px;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: var(--danger);
-    margin: 4px 0 6px;
-  }
-  .group-label.upcoming{ color: var(--ink-soft); margin-top: 16px; }
-  .move-today{
-    font-family:'IBM Plex Mono', monospace;
-    font-size: 10px;
-    color: var(--gold);
-    background:none;
-    border: 1px solid var(--gold-soft);
-    border-radius: var(--radius);
-    padding: 3px 7px;
-    cursor: pointer;
-    flex-shrink:0;
-    align-self:center;
-  }
-  .move-today:hover{ background: var(--gold-soft); }
-  @keyframes riseIn{ from{ opacity:0; transform: translateY(3px);} to{ opacity:1; transform: translateY(0);} }
-  .entry{ animation: riseIn .18s ease; }
-
-  /* ---------- Chore marker ---------- */
-  .entry .marker.chore-marker{ border-color: var(--gold); }
-  .entry .marker.chore-marker.checked{ background: var(--gold); }
-  .entry-meta .carried{ color: var(--danger); }
-  .entry-meta .chore-tag{ color: var(--gold); }
-
-  /* ---------- Tabs ---------- */
+  .btn-add:active{ transform:scale(.97); }
   .tabbar{
-    display:flex; gap: 26px;
-    border-bottom: 1px solid var(--line);
-    margin-bottom: 26px;
+    position:fixed; left:0; right:0; bottom:0; z-index:40; background:var(--surface);
+    border-top:1px solid var(--line); padding-bottom:env(safe-area-inset-bottom);
   }
-  .tabbar button{
-    background:none; border:none;
-    padding: 0 0 10px;
-    font-family:'IBM Plex Mono', monospace;
-    font-size: 12.5px;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: var(--ink-soft);
-    cursor:pointer;
-    position: relative;
+  .tabbar-inner{ max-width:640px; margin:0 auto; display:grid; grid-template-columns:repeat(3,1fr); }
+  .tab{
+    position:relative; height:var(--tabbar-h); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+    font-size:12.5px; color:var(--ink-3); transition:color .15s var(--ease);
   }
-  .tabbar button.active{ color: var(--ink); }
-  .tabbar button.active::after{
-    content:''; position:absolute; left:0; right:0; bottom:-1px; height:2px; background: var(--gold);
+  .tab.active{ color:var(--accent); font-weight:600; }
+  .tab .badge{
+    position:absolute; top:8px; left:calc(50% + 9px); min-width:18px; height:18px; padding:0 5px; border-radius:9px;
+    background:var(--accent); color:var(--accent-ink); font-size:12.5px; line-height:18px; text-align:center; font-weight:600;
   }
+  .view.enter{ animation:viewIn .2s var(--ease); }
+  @keyframes viewIn{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:none; } }
 
-  /* ---------- Todo view ---------- */
-  .todo-view{ display:none; }
-  .todo-topbar{
-    display:flex; justify-content:space-between; align-items:flex-end;
-    margin-bottom: 20px; gap: 16px; flex-wrap: wrap;
+  /* ---------- sections, progress, empty states ---------- */
+  .section{ margin-bottom:22px; }
+  .section-head{ display:flex; align-items:center; justify-content:space-between; width:100%; min-height:44px; }
+  .section-label{ font-size:12.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-2); }
+  .section-head .ic{ color:var(--ink-3); transition:transform .2s var(--ease); }
+  .section-head[aria-expanded="false"] .ic{ transform:rotate(-90deg); }
+  .section-hint{ font-size:12.5px; color:var(--ink-3); margin:0 0 10px; }
+  .section-count{ font-size:12.5px; color:var(--ink-3); margin-right:8px; }
+  .collapsible{ display:grid; grid-template-rows:1fr; transition:grid-template-rows .22s var(--ease); }
+  .collapsible.closed{ grid-template-rows:0fr; }
+  .collapsible-inner{ overflow:hidden; min-height:0; padding:4px 6px 20px; margin:-4px -6px -20px; }
+  .collapsible.closed .collapsible-inner{ visibility:hidden; transition:visibility 0s .22s; }
+  .prog-wrap{ margin-bottom:10px; }
+  .progress{ height:4px; background:var(--line); border-radius:2px; overflow:hidden; }
+  .progress > span{ display:block; height:100%; width:0; background:var(--accent); border-radius:2px; transition:width .25s var(--ease); }
+  .progress-cap{ font-size:12.5px; color:var(--ink-3); margin-top:4px; }
+  .agenda-list{ display:flex; flex-direction:column; }
+  .group-label{ font-size:12.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-2); margin:6px 0 8px; }
+  .group-label.carried{ color:var(--danger); }
+  .empty-state{ display:flex; flex-direction:column; align-items:center; gap:8px; padding:26px 16px; color:var(--ink-3); text-align:center; font-size:15px; }
+  .show-all-link{ min-height:44px; padding:0 4px; color:var(--accent); font-weight:600; }
+  .search{ position:relative; margin:0 0 12px; }
+  .search .ic{ position:absolute; left:12px; top:12px; color:var(--ink-3); pointer-events:none; }
+  .search input{ width:100%; min-height:44px; padding:0 12px 0 38px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-sm); }
+  .tag-filter-row{ display:flex; flex-wrap:wrap; gap:8px; margin:0 0 18px; }
+  .tag-chip, .chip{
+    min-height:36px; padding:0 14px; border-radius:18px; background:var(--surface); border:1px solid var(--line);
+    color:var(--ink-2); display:inline-flex; align-items:center; transition:background .15s var(--ease), color .15s var(--ease);
   }
-  .share-btn{
-    font-family:'IBM Plex Sans', sans-serif;
-    font-weight: 600;
-    font-size: 12.5px;
-    padding: 9px 16px;
-    border-radius: var(--radius);
-    border: 1px solid var(--ink);
-    background: var(--ink);
-    color: var(--paper-raised);
-    cursor:pointer;
-    display:flex; align-items:center; gap:7px;
-  }
-  .share-btn:hover{ background: #14180F; }
-  .todo-section{ margin-bottom: 20px; }
-  .todo-section-header{
-    display:flex; justify-content:space-between; align-items:baseline;
-    margin-bottom: 12px;
-  }
-  .todo-section-header h2{
-    font-family:'Fraunces', serif;
-    font-weight: 600;
-    font-size: 17px;
-  }
-  .todo-section-header .section-count{
-    font-family:'IBM Plex Mono', monospace;
-    font-size: 11px;
-    color: var(--ink-soft);
-  }
-  .section-hint{
-    font-size: 11px;
-    color: var(--ink-faint);
-    font-style: italic;
-    margin: -6px 0 12px;
-  }
-  .inline-add{
-    display:flex; gap: 8px;
-    margin-bottom: 14px;
-  }
-  .inline-add input[type="text"]{
-    flex:1;
-    font-family:'IBM Plex Sans', sans-serif;
-    font-size: 13.5px;
-    border: 1px solid var(--line-strong);
-    border-radius: var(--radius);
-    padding: 9px 11px;
-    background: var(--paper);
-    color: var(--ink);
-  }
-  .inline-add input[type="time"]{
-    font-family:'IBM Plex Mono', monospace;
-    border: 1px solid var(--line-strong);
-    border-radius: var(--radius);
-    padding: 9px 8px;
-    background: var(--paper);
-    color: var(--ink);
-    width: 108px;
-  }
-  .inline-add input:focus{ outline: 1.5px solid var(--gold); }
-  .inline-add button{
-    font-family:'IBM Plex Sans', sans-serif;
-    font-weight: 600;
-    font-size: 12.5px;
-    padding: 0 16px;
-    border-radius: var(--radius);
-    border: 1px solid var(--line-strong);
-    background: var(--line);
-    color: var(--ink-faint);
-    cursor: not-allowed;
-    transition: background .15s ease, color .15s ease, border-color .15s ease;
-  }
-  .inline-add button.enabled{
-    background: var(--ink); color: var(--paper-raised); border-color: var(--ink); cursor:pointer;
-  }
-  .inline-add.chore-add button.enabled{ background: var(--gold); border-color: var(--gold); color: var(--ink); }
-  .inline-add.note-add button.enabled{ background: var(--note); border-color: var(--note); }
+  .tag-chip:hover{ border-color:var(--ink-3); }
+  .tag-chip.active, .tag-chip[aria-pressed="true"]{ background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
 
-  /* Reschedule popover (reuses .quick-form) */
-  .reschedule-form .time-row{ display:flex; align-items:center; gap:8px; }
-  .reschedule-form label{ font-size:12px; color: var(--ink-soft); font-family:'IBM Plex Mono', monospace; }
-  .reschedule-form input{
-    font-family:'IBM Plex Mono', monospace;
-    border: 1px solid var(--line-strong);
-    border-radius: var(--radius);
-    padding: 6px 8px;
-    background: var(--paper-raised);
-    color: var(--ink);
+  /* ---------- cards: entries ---------- */
+  .card{ background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow); padding:14px; margin-bottom:12px; transition:background .2s var(--ease); }
+  .entry{
+    position:relative; background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow);
+    margin-bottom:12px; overflow:hidden; border-left:3px solid transparent;
+    transition:background .2s var(--ease), border-color .2s var(--ease);
   }
+  .t-chore{ --c:var(--gold); } .t-task{ --c:var(--task); } .t-note{ --c:var(--note); }
+  .entry.overdue{ border-left-color:var(--danger); }
+  .entry-top{ position:relative; overflow:hidden; touch-action:pan-y; }
+  .entry-row{ position:relative; z-index:1; display:flex; align-items:flex-start; background:var(--surface); padding:2px 8px 2px 2px; transition:transform .2s var(--ease), background .2s var(--ease); }
+  .check{ width:44px; height:44px; flex:none; display:grid; place-items:center; }
+  .check .box{ width:22px; height:22px; border-radius:50%; border:2px solid var(--c); display:grid; place-items:center; color:var(--surface); transition:background .15s var(--ease); }
+  .check .box .ic{ opacity:0; }
+  .check.checked .box{ background:var(--c); }
+  .check.checked .box .ic{ opacity:1; }
+  .check-slot{ width:44px; height:44px; flex:none; display:grid; place-items:center; }
+  .note-dot{ width:8px; height:8px; border-radius:50%; background:var(--c); }
+  .entry-main{ flex:1; min-width:0; display:flex; align-items:flex-start; gap:8px; padding:10px 0 10px 2px; min-height:44px; }
+  .entry-copy{ flex:1; min-width:0; display:block; }
+  .entry-text{ display:block; overflow-wrap:anywhere; }
+  .entry-meta{ display:flex; flex-wrap:wrap; gap:2px 10px; margin-top:2px; font-size:12.5px; color:var(--ink-3); }
+  .entry-meta .m{ display:inline-flex; align-items:center; gap:4px; }
+  .entry-meta .m-danger{ color:var(--danger); font-weight:600; }
+  .entry-meta .m-tag{ color:var(--ink-2); }
+  .dot-type{ width:7px; height:7px; border-radius:50%; background:var(--c); display:inline-block; }
+  .chev{ color:var(--ink-3); margin-top:2px; transition:transform .2s var(--ease); }
+  .entry.open .chev{ transform:rotate(180deg); }
+  .entry.done .entry-text{ text-decoration:line-through; color:var(--ink-3); }
+  .entry.done{ background:var(--surface); }
+  .entry.completing{ max-height:0 !important; opacity:0; margin-bottom:0; transition:max-height .25s var(--ease), opacity .2s var(--ease), margin .25s var(--ease); }
+  .entry.completing .entry-text{ text-decoration:line-through; color:var(--ink-3); }
+  .entry-actions-wrap{ display:grid; grid-template-rows:0fr; transition:grid-template-rows .2s var(--ease); }
+  .entry.open .entry-actions-wrap{ grid-template-rows:1fr; }
+  .entry-actions{ overflow:hidden; min-height:0; visibility:hidden; display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:8px; padding:0 12px; transition:visibility 0s .2s; }
+  .entry.open .entry-actions{ visibility:visible; padding:4px 12px 14px; transition:none; }
+  .action-btn{ min-height:44px; display:flex; align-items:center; gap:8px; padding:0 12px; background:var(--surface-2); border-radius:var(--radius-sm); color:var(--ink); }
+  .action-btn .ic{ color:var(--ink-2); }
+  .action-btn.danger, .action-btn.danger .ic{ color:var(--danger); }
+  .swipe-actions{ position:absolute; top:0; right:0; bottom:0; display:flex; visibility:hidden; }
+  .entry-top.swiped .swipe-actions, .entry-top.dragging .swipe-actions{ visibility:visible; }
+  .swipe-actions button{ width:72px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; font-size:12.5px; font-weight:600; }
+  .sw-check{ background:var(--accent); color:var(--accent-ink); }
+  .sw-later{ background:var(--gold); color:var(--surface); }
+  .sw-del{ background:var(--danger); color:var(--surface); }
 
-  /* Swipe */
-  .entry[data-swipeable="1"]{ touch-action: pan-y; will-change: transform; }
+  /* archive cards */
+  .stat{ font-weight:600; text-align:center; margin-bottom:22px; }
+  .archive-body{ padding:12px 14px 4px; }
+  .archive-actions{ display:flex; gap:8px; padding:8px 12px 12px; }
+  .archive-actions .action-btn{ flex:1; justify-content:center; }
 
-  /* Notes list in todo view */
-  .note-row{
-    display:flex; align-items:flex-start; gap:10px;
-    padding: 10px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--paper);
-    margin-bottom: 8px; animation: riseIn .18s ease;
+  /* ---------- calendar ---------- */
+  .cal-card{ margin-bottom:22px; }
+  .cal-disclosure{ width:100%; min-height:44px; display:flex; align-items:center; justify-content:space-between; color:var(--ink-2); font-weight:600; }
+  .cal-disclosure[aria-expanded="true"]{ margin-bottom:8px; }
+  .cal-nav{ display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+  .month-label{ font-size:20px; font-weight:700; letter-spacing:-0.01em; }
+  .cal-nav-btns{ display:flex; gap:2px; align-items:center; }
+  .cal-nav-btns button{ min-width:44px; min-height:44px; border-radius:22px; display:grid; place-items:center; color:var(--ink-2); }
+  .cal-nav-btns button:hover{ background:var(--surface-2); }
+  #todayBtn{ padding:0 14px; color:var(--accent); font-weight:600; }
+  .weekdays{ display:grid; grid-template-columns:repeat(7,1fr); text-align:center; font-size:12.5px; color:var(--ink-3); margin-bottom:4px; }
+  .daygrid{ display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+  .daycell{
+    min-height:44px; aspect-ratio:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+    border-radius:12px; border:2px solid transparent; cursor:pointer; transition:background .15s var(--ease);
   }
-  .note-row .marker.note-marker{ width:16px; height:16px; flex-shrink:0; margin-top:1px; border-radius:50%; border:1.5px solid var(--note); display:flex; align-items:center; justify-content:center; }
-  .note-row .marker.note-marker::after{ content:''; width:6px; height:6px; border-radius:50%; background: var(--note); }
-  .show-all-link{
-    background:none; border:none; cursor:pointer;
-    font-family:'IBM Plex Mono', monospace;
-    font-size: 11px;
-    color: var(--ink-soft);
-    text-decoration: underline;
-    padding: 4px 0;
-  }
-  .filter-row{ margin-bottom: 12px; }
-  .filter-row input{
-    width:100%;
-    font-family:'IBM Plex Sans', sans-serif;
-    font-size: 12.5px;
-    border: 1px solid var(--line-strong);
-    border-radius: var(--radius);
-    padding: 7px 10px;
-    background: var(--paper);
-    color: var(--ink);
-  }
-  .filter-row input:focus{ outline: 1.5px solid var(--gold); }
+  .daycell:hover{ background:var(--surface-2); }
+  .daycell.outside{ color:var(--ink-3); }
+  .daycell.today{ border-color:var(--accent); }
+  .daycell.selected{ background:var(--accent-soft); }
+  .daycell .num{ line-height:1; }
+  .dots{ display:flex; gap:3px; height:5px; }
+  .dot{ width:5px; height:5px; border-radius:50%; }
+  .dot.note{ background:var(--note); } .dot.task{ background:var(--task); } .dot.chore{ background:var(--gold); }
 
-  /* ---------- Share modal ---------- */
+  /* ---------- popovers (tag / repeat / reschedule / edit note) ---------- */
+  .quick-form{
+    display:none; flex-direction:column; gap:12px; background:var(--surface); border:1px solid var(--line);
+    border-radius:var(--radius); box-shadow:var(--shadow); padding:14px; margin:-4px 0 12px;
+  }
+  .quick-form.open{ display:flex; animation:pop .18s var(--ease); }
+  @keyframes pop{ from{ opacity:0; transform:translateY(-4px); } to{ opacity:1; transform:none; } }
+  .quick-form textarea, .quick-form input, .quick-form select, .field input, .field select, .field textarea, .sync-field input, .manage-tag-row input, .modal-card textarea{
+    width:100%; min-height:44px; padding:10px 12px; background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius-sm);
+  }
+  .quick-form textarea, .field textarea, .modal-card textarea{ min-height:88px; resize:vertical; }
+  .quick-form input:focus, .quick-form select:focus, .quick-form textarea:focus, .field input:focus, .field select:focus, .field textarea:focus{ outline:2px solid var(--accent); outline-offset:0; }
+  .time-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .time-row label{ min-width:52px; font-size:12.5px; color:var(--ink-3); }
+  .time-row input, .time-row select{ flex:1 1 140px; width:auto; }
+  .date-preview{ font-size:12.5px; color:var(--ink-3); }
+  .tag-chip-row{ display:flex; flex-wrap:wrap; gap:8px; }
+  .new-tag-row{ display:flex; gap:8px; }
+  .new-tag-row input{ flex:1; }
+  .form-actions{ display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap; }
+  .form-actions button, .modal-actions button, .modal-actions a, .btn, .save-btn, .modal-close{
+    min-height:44px; padding:0 18px; border-radius:var(--radius-sm); background:var(--surface-2); font-weight:600;
+    display:inline-flex; align-items:center; justify-content:center; gap:8px; text-decoration:none; color:var(--ink);
+  }
+  .save-btn, .btn.primary, .modal-actions .primary{ background:var(--accent); color:var(--accent-ink); }
+  .save-btn.disabled, button:disabled{ opacity:.45; cursor:not-allowed; }
+  button.danger, .btn.danger{ color:var(--danger); }
+  .modal-close{ width:100%; margin-top:14px; }
+
+  /* ---------- sheets (all dialogs) ---------- */
   .modal-overlay{
-    display:none;
-    position: fixed; inset:0;
-    background: rgba(33,38,31,0.45);
-    align-items:center; justify-content:center;
-    z-index: 100;
-    padding: 20px;
+    position:fixed; inset:0; z-index:100; display:flex; align-items:flex-end; justify-content:center; background:var(--scrim);
+    visibility:hidden; opacity:0; transition:opacity .2s var(--ease), visibility 0s .25s;
   }
-  .modal-overlay.open{ display:flex; }
+  .modal-overlay.open{ visibility:visible; opacity:1; transition:opacity .2s var(--ease); }
   .modal-card{
-    background: var(--paper-raised);
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    padding: 22px;
-    max-width: 440px;
-    width: 100%;
-    max-height: 80vh;
-    overflow-y: auto;
+    position:relative; width:100%; max-width:640px; max-height:90vh; overflow-y:auto; background:var(--surface);
+    border-radius:var(--radius) var(--radius) 0 0; padding:22px 16px calc(20px + env(safe-area-inset-bottom));
+    transform:translateY(28px); transition:transform .25s var(--ease);
   }
-  .modal-card h3{
-    font-family:'Fraunces', serif; font-weight:600; font-size: 18px; margin-bottom: 4px;
-  }
-  .modal-card .modal-sub{
-    font-size: 12px; color: var(--ink-soft); margin-bottom: 14px; font-family:'IBM Plex Mono', monospace;
-  }
-  .modal-card textarea{
-    width:100%; min-height: 220px;
-    font-family:'IBM Plex Mono', monospace;
-    font-size: 12.5px;
-    line-height:1.5;
-    border: 1px solid var(--line-strong);
-    border-radius: var(--radius);
-    padding: 10px;
-    background: var(--paper);
-    color: var(--ink);
-    margin-bottom: 14px;
-    resize: vertical;
-  }
+  .modal-card::before{ content:""; position:absolute; top:8px; left:50%; width:36px; height:4px; margin-left:-18px; border-radius:2px; background:var(--line); }
+  .modal-overlay.open .modal-card{ transform:none; }
+  .modal-card h3{ margin-bottom:4px; }
+  .modal-sub{ font-size:12.5px; color:var(--ink-3); margin:0 0 12px; }
+  .modal-card textarea{ margin-bottom:12px; }
   .modal-actions{ display:flex; flex-wrap:wrap; gap:8px; }
-  .modal-actions a, .modal-actions button{
-    font-family:'IBM Plex Sans', sans-serif;
-    font-weight: 500;
-    font-size: 12.5px;
-    padding: 9px 14px;
-    border-radius: var(--radius);
-    border: 1px solid var(--line-strong);
-    background: var(--paper);
-    color: var(--ink);
-    cursor:pointer;
-    text-decoration:none;
-    display:inline-flex; align-items:center; gap:6px;
-  }
-  .modal-actions .primary{ background: var(--ink); color: var(--paper-raised); border-color: var(--ink); }
-  .modal-actions .primary:hover{ background:#14180F; }
-  .modal-close{
-    background:none; border:none; cursor:pointer;
-    color: var(--ink-soft); font-family:'IBM Plex Mono', monospace; font-size:11px;
-    margin-top: 12px; text-decoration:underline;
-  }
+  .modal-actions > *{ flex:1 1 auto; }
+  .sheet-head{ display:flex; align-items:center; gap:4px; margin:0 0 8px -8px; }
+  .type-grid{ display:grid; gap:10px; margin-top:12px; }
+  .type-btn{ display:flex; align-items:center; gap:14px; min-height:64px; padding:12px 14px; background:var(--surface-2); border-radius:var(--radius); }
+  .type-btn .ic{ width:24px; height:24px; color:var(--accent); }
+  .type-btn b{ display:block; font-weight:600; }
+  .type-btn small{ display:block; font-size:12.5px; color:var(--ink-3); }
+  .field{ display:block; margin-bottom:12px; }
+  .field > span{ display:block; font-size:12.5px; color:var(--ink-3); margin-bottom:4px; }
+  .field-row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .add-actions{ display:flex; gap:8px; margin-top:6px; }
+  .add-actions .btn{ flex:1; }
 
-  /* ---------- Header actions / Archive button ---------- */
-  .header-actions{ display:flex; align-items:center; gap: 20px; flex-wrap: wrap; }
-  .archive-btn{
-    background:none; border:none; cursor:pointer;
-    font-family:'IBM Plex Mono', monospace;
-    font-size: 12px;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--ink-soft);
-  }
-  .archive-btn:hover{ color: var(--ink); }
-  .archive-btn .badge{
-    display:inline-block; margin-left:5px;
-    background: var(--danger); color: var(--paper-raised);
-    border-radius: 20px; font-size: 9.5px; padding: 1px 6px;
-  }
-  .sync-dot{
-    display:inline-block; width:6px; height:6px; border-radius:50%;
-    margin-left:6px; background: var(--ink-faint);
-  }
-  .sync-dot.ok{ background: var(--note); }
-  .sync-dot.error{ background: var(--danger); }
-  .sync-dot.syncing{ background: var(--gold); }
-  .sync-dot.live{ background: var(--note); box-shadow: 0 0 0 2px var(--note-soft); }
-  .realtime-badge{
-    display:inline-block; font-family:'IBM Plex Mono', monospace; font-size:10px;
-    padding: 1px 7px; border-radius: 20px; margin-left: 8px;
-    background: var(--note-soft); color: var(--note); border: 1px solid var(--note);
-  }
-  .realtime-badge.off{ background: var(--paper); color: var(--ink-faint); border-color: var(--line-strong); }
+  /* settings */
+  .set-group-label{ font-size:12.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-2); margin:16px 0 4px; }
+  .set-row{ display:flex; align-items:center; gap:12px; width:100%; min-height:52px; padding:4px 2px; border-bottom:1px solid var(--line); cursor:pointer; text-align:left; }
+  .set-row > .ic:first-child{ color:var(--ink-2); }
+  .set-row .set-text{ flex:1; }
+  .set-row small{ display:block; font-size:12.5px; color:var(--ink-3); }
+  .set-row > .ic:last-child{ color:var(--ink-3); }
+  .set-caption{ font-size:12.5px; color:var(--ink-3); margin:6px 2px 0; }
+  .set-version{ font-size:12.5px; color:var(--ink-3); text-align:center; margin-top:18px; }
+  .switch{ position:relative; flex:none; width:46px; height:28px; border-radius:14px; background:var(--line); transition:background .2s var(--ease); }
+  .switch::after{ content:""; position:absolute; top:3px; left:3px; width:22px; height:22px; border-radius:50%; background:var(--surface); box-shadow:var(--shadow); transition:transform .2s var(--ease); }
+  .switch.on{ background:var(--accent); }
+  .switch.on::after{ transform:translateX(18px); }
+  .sync-dot{ display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--ink-3); flex:none; }
+  .sync-dot.ok{ background:var(--note); } .sync-dot.error{ background:var(--danger); } .sync-dot.syncing{ background:var(--gold); }
+  .sync-dot.live{ background:var(--note); box-shadow:0 0 0 3px var(--accent-soft); }
 
-  /* ---------- Sync modal ---------- */
-  .sync-field{ margin-bottom: 12px; }
-  .sync-field label{
-    display:block; font-family:'IBM Plex Mono', monospace; font-size:11px;
-    color: var(--ink-soft); margin-bottom: 5px;
-  }
-  .sync-field input{
-    width:100%;
-    font-family:'IBM Plex Sans', sans-serif;
-    font-size: 13px;
-    border: 1px solid var(--line-strong);
-    border-radius: var(--radius);
-    padding: 8px 10px;
-    background: var(--paper);
-    color: var(--ink);
-  }
-  .sync-field input:focus{ outline: 1.5px solid var(--gold); }
-  .sync-actions-row{ display:flex; margin-bottom: 4px; }
+  /* sync / manage tags / import / share dialogs */
+  .sync-field{ margin-bottom:12px; }
+  .sync-field label{ display:block; font-size:12.5px; color:var(--ink-3); margin-bottom:4px; }
+  .sync-actions-row{ display:flex; margin-bottom:4px; }
   .sync-actions-row .save-btn{ width:100%; }
-  .sync-divider{
-    text-align:center; font-family:'IBM Plex Mono', monospace; font-size:11px;
-    color: var(--ink-faint); margin: 16px 0;
-  }
+  .sync-divider{ text-align:center; font-size:12.5px; color:var(--ink-3); margin:16px 0; }
   .sync-code-row{ display:flex; gap:8px; }
   .sync-code-row input{ flex:1; }
-  .sync-code-row button{
-    font-family:'IBM Plex Mono', monospace; font-size:11px;
-    border: 1px solid var(--line-strong); border-radius: var(--radius);
-    background: var(--paper-raised); color: var(--ink); cursor:pointer; padding: 0 12px;
-  }
-
-  /* ---------- Manage tags modal ---------- */
-  .manage-tag-row{
-    display:flex; align-items:center; gap:8px; margin-bottom:8px;
-  }
-  .manage-tag-row .mt-rename{
-    flex:1;
-    font-family:'IBM Plex Sans', sans-serif; font-size:13px;
-    border: 1px solid var(--line-strong); border-radius: var(--radius);
-    padding: 7px 9px; background: var(--paper); color: var(--ink);
-  }
-  .manage-tag-row .mt-count{
-    font-family:'IBM Plex Mono', monospace; font-size:11px; color: var(--ink-faint); flex-shrink:0;
-  }
-  .manage-tag-row button{
-    font-family:'IBM Plex Mono', monospace; font-size:11px;
-    border: 1px solid var(--line-strong); border-radius: var(--radius);
-    background: var(--paper-raised); color: var(--ink); cursor:pointer; padding: 6px 10px; flex-shrink:0;
-  }
-  button.danger{ color: var(--danger); border-color: var(--danger); }
-  button.danger:hover{ background: var(--danger); color: var(--paper-raised); }
-
-  /* ---------- Tags ---------- */
-  .tag-chip-row{ display:flex; flex-wrap:wrap; gap: 6px; }
-  .tag-chip{
-    font-family:'IBM Plex Mono', monospace;
-    font-size: 11px;
-    padding: 4px 11px;
-    border-radius: 20px;
-    border: 1px solid var(--line-strong);
-    background: var(--paper);
-    color: var(--ink-soft);
-    cursor: pointer;
-  }
-  .tag-chip:hover{ border-color: var(--ink-soft); }
-  .tag-chip.active{ background: var(--ink); color: var(--paper-raised); border-color: var(--ink); }
-  .tag-pill-display{
-    cursor: default; padding: 3px 9px; font-size: 10px;
-    background: var(--gold-soft); border-color: var(--gold); color: var(--ink);
-  }
-  .tag-pill-display:hover{ border-color: var(--gold); }
-  .tag-filter-row{ margin-bottom: 18px; }
-  .entry-tag-btn{
-    font-family:'IBM Plex Mono', monospace;
-    font-size: 10px;
-    padding: 2px 9px;
-    border-radius: 20px;
-    border: 1px dashed var(--line-strong);
-    color: var(--ink-faint);
-    background:none;
-    cursor: pointer;
-    flex-shrink:0;
-    align-self:center;
-    white-space: nowrap;
-  }
-  .entry-tag-btn.has-tag{
-    border-style: solid;
-    border-color: var(--line-strong);
-    color: var(--ink-soft);
-    background: var(--paper-raised);
-  }
-  .entry-tag-btn:hover{ border-color: var(--ink-soft); color: var(--ink); }
-  .tag-picker-form .new-tag-row{ display:flex; gap:8px; margin-top:10px; }
-  .tag-picker-form .new-tag-row input{
-    flex:1;
-    font-family:'IBM Plex Sans', sans-serif;
-    font-size: 12.5px;
-    border: 1px solid var(--line-strong);
-    border-radius: var(--radius);
-    padding: 7px 10px;
-    background: var(--paper-raised);
-    color: var(--ink);
-  }
-  .tag-select-btn{
-    font-family:'IBM Plex Mono', monospace;
-    font-size: 11px;
-    padding: 0 12px;
-    border-radius: var(--radius);
-    border: 1px dashed var(--line-strong);
-    background: var(--paper);
-    color: var(--ink-soft);
-    cursor: pointer;
-    white-space: nowrap;
-  }
-  .tag-select-btn.has-tag{ border-style: solid; color: var(--ink); background: var(--paper-raised); }
-
-  /* ---------- Archive modal ---------- */
-  .archive-section{ margin-bottom: 18px; }
-  .archive-section:last-child{ margin-bottom: 0; }
-  .archive-section h4{
-    font-family:'Fraunces', serif; font-weight: 600; font-size: 14px; margin-bottom: 8px;
-  }
-  .archive-row{
-    display:flex; align-items:center; gap: 8px;
-    padding: 9px 10px;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    background: var(--paper);
-    margin-bottom: 6px;
-  }
-  .archive-row .archive-text{ flex:1; font-size: 12.5px; min-width:0; word-break: break-word; }
-  .archive-row .archive-meta{
-    font-family:'IBM Plex Mono', monospace; font-size: 10px; color: var(--ink-faint); white-space: nowrap;
-  }
-  .archive-row button{
-    font-family:'IBM Plex Mono', monospace;
-    font-size: 10px;
-    padding: 5px 9px;
-    border-radius: var(--radius);
-    border: 1px solid var(--line-strong);
-    background: var(--paper-raised);
-    color: var(--ink);
-    cursor: pointer;
-    white-space: nowrap;
-    flex-shrink:0;
-  }
-  .archive-row button:hover{ background: var(--paper); }
-  .archive-row button.danger{ color: var(--danger); border-color: var(--danger); }
-
-  /* ---------- Theme toggle / version tag ---------- */
-  .theme-btn{
-    background:none; border:none; cursor:pointer;
-    font-family:'IBM Plex Mono', monospace;
-    font-size: 12px; letter-spacing:0.04em; text-transform:uppercase;
-    color: var(--ink-soft);
-  }
-  .theme-btn:hover{ color: var(--ink); }
-  .version-tag{
-    font-family:'IBM Plex Mono', monospace;
-    font-size: 10px;
-    color: var(--ink-faint);
-    margin-left: 8px;
-  }
-
-  /* ---------- Collapsible sections ---------- */
-  .header-right{ display:flex; align-items:center; gap:10px; }
-  .collapse-btn{
-    background:none; border:none; cursor:pointer;
-    color: var(--ink-soft);
-    font-size: 12px;
-    padding: 2px 4px;
-    line-height:1;
-  }
-  .collapse-btn:hover{ color: var(--ink); }
-
-  /* ---------- Secondary share/import button ---------- */
-  .share-btn.secondary{ background: var(--paper-raised); color: var(--ink); border-color: var(--line-strong); }
-  .share-btn.secondary:hover{ background: var(--paper); }
-  .todo-topbar-actions{ display:flex; gap:8px; flex-wrap:wrap; }
-
-  /* ---------- Late reminder jump button ---------- */
-  .late-tag{ color: var(--danger); }
-
-
-  /* ---------- v2.3.0: shared control styling (forms, popovers) ---------- */
-  .quick-form select, .quick-form input[type="date"], .quick-form input[type="time"], .quick-form input[type="text"],
-  .inline-add-opts select, .inline-add-opts input[type="time"], .inline-add-opts input[type="text"],
-  .tag-picker-form input, .reschedule-form input, .recur-picker-form select{
-    font-family:'IBM Plex Sans', sans-serif;
-    font-size: 13px;
-    color: var(--ink);
-    background: var(--paper-raised);
-    border: 1px solid var(--line-strong);
-    border-radius: var(--radius);
-    padding: 6px 9px;
-    min-height: 32px;
-  }
-  .quick-form select, .inline-add-opts select{ cursor:pointer; padding-right: 6px; }
-  .quick-form input:focus, .quick-form select:focus, .quick-form textarea:focus,
-  .inline-add-opts input:focus, .inline-add-opts select:focus{ outline: 1.5px solid var(--gold); outline-offset: 0; }
-  .quick-form .time-row label{ min-width: 52px; }
-  .quick-form .time-row input[type="text"]{ flex: 1; }
-  .tag-picker-form .new-tag-row{ display:flex; gap:8px; }
-  .tag-picker-form .new-tag-row input{ flex:1; }
-  .reschedule-form .date-preview{ font-family:'IBM Plex Mono', monospace; font-size:11px; color: var(--ink-soft); }
-  .restore-btn{
-    font-family:'IBM Plex Mono', monospace; font-size:10px;
-    color: var(--ink-soft); background: none;
-    border: 1px solid var(--line-strong); border-radius: var(--radius);
-    padding: 3px 8px; cursor:pointer; flex-shrink:0; align-self:center;
-  }
-  .restore-btn:hover{ background: var(--paper); color: var(--ink); }
-  .restore-btn:focus:not(:focus-visible){ outline: none; background: none; }
-
-  /* add rows: options line */
-  .inline-add-opts{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin: -6px 0 14px; }
-  .inline-add-opts .opt{ display:flex; align-items:center; gap:6px; font-family:'IBM Plex Mono', monospace; font-size:11px; color: var(--ink-soft); }
-  .inline-add-opts input[type="text"]{ flex: 1 1 140px; min-width: 120px; }
-
-  /* notifications row */
-  .notify-row{ display:flex; flex-wrap:wrap; gap: 18px; margin-bottom: 6px; }
-  .mini-toggle{ display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none;
-    font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:0.04em; text-transform:uppercase; color: var(--ink-soft); }
-  .mini-toggle[aria-checked="true"]{ color: var(--ink); }
-
-  /* legend + hints */
-  .legend{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; color: var(--ink-faint); line-height:1.5; margin: 0 0 12px; }
-
-  /* calendar disclosure (Focus mode) */
-  .cal-disclosure{
-    width:100%; text-align:left; background:none; border: 1px dashed var(--line-strong); border-radius: var(--radius);
-    color: var(--ink-soft); font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:0.04em;
-    text-transform:uppercase; padding: 10px 12px; cursor:pointer; margin-bottom: 0;
-  }
-  .cal-disclosure:hover{ color: var(--ink); border-color: var(--ink-soft); }
-  .cal-disclosure[aria-expanded="true"]{ margin-bottom: 14px; }
+  .sync-code-row button{ min-height:44px; padding:0 16px; border-radius:var(--radius-sm); background:var(--surface-2); font-weight:600; }
+  .realtime-badge{ display:inline-block; font-size:12.5px; padding:1px 8px; border-radius:10px; margin-left:8px; background:var(--accent-soft); color:var(--accent); }
+  .realtime-badge.off{ background:var(--surface-2); color:var(--ink-3); }
+  .manage-tag-row{ display:flex; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
+  .manage-tag-row input{ flex:1 1 140px; width:auto; }
+  .manage-tag-row .mt-count{ font-size:12.5px; color:var(--ink-3); }
+  .manage-tag-row button{ min-height:44px; padding:0 14px; border-radius:var(--radius-sm); background:var(--surface-2); font-weight:600; }
+  .import-preview{ background:var(--surface-2); border-radius:var(--radius-sm); padding:10px 12px; margin-bottom:12px; max-height:200px; overflow-y:auto; }
+  .import-preview .ip-summary{ font-weight:600; margin-bottom:6px; }
+  .import-preview ul{ list-style:none; }
+  .import-preview li{ display:flex; gap:10px; padding:4px 0; border-top:1px solid var(--line); }
+  .import-preview li:first-child{ border-top:0; }
+  .import-preview .ip-type{ min-width:60px; font-size:12.5px; color:var(--ink-3); text-transform:uppercase; letter-spacing:.06em; }
 
   /* toast */
   .toast{
-    position: fixed; left: 50%; bottom: 22px; transform: translate(-50%, 20px);
-    background: var(--ink); color: var(--paper-raised);
-    border-radius: var(--radius); padding: 10px 14px; font-size: 13px;
-    display:flex; align-items:center; gap: 14px; max-width: min(92vw, 460px);
-    opacity: 0; pointer-events: none; transition: opacity .18s ease, transform .18s ease; z-index: 200;
-    box-shadow: 0 6px 24px rgba(0,0,0,.25);
+    position:fixed; left:50%; bottom:calc(var(--tabbar-h) + 16px + env(safe-area-inset-bottom)); transform:translate(-50%,12px);
+    background:var(--ink); color:var(--bg); border-radius:var(--radius-sm); padding:6px 8px 6px 14px; display:flex; align-items:center; gap:10px;
+    max-width:min(92vw,460px); opacity:0; pointer-events:none; transition:opacity .18s var(--ease), transform .18s var(--ease); z-index:200; box-shadow:var(--shadow);
   }
-  .toast.show{ opacity:1; transform: translate(-50%, 0); pointer-events: auto; }
-  .toast button{
-    background:none; border:none; color: var(--gold); font-family:'IBM Plex Mono', monospace; font-size:12px;
-    text-transform:uppercase; letter-spacing:0.05em; cursor:pointer; padding: 4px 2px; font-weight:600;
+  .toast.show{ opacity:1; transform:translate(-50%,0); pointer-events:auto; }
+  .toast button{ min-height:44px; padding:0 12px; font-weight:700; color:var(--accent); background:none; }
+  [data-theme="dark"] .toast button{ color:var(--accent-ink); }
+
+  /* ---------- motion preferences ---------- */
+  @media (prefers-reduced-motion: reduce){
+    *, *::before, *::after{ animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; transition-delay:0s !important; }
   }
 
-  /* import preview */
-  .import-preview{ border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); padding: 10px 12px; margin-bottom: 14px; max-height: 200px; overflow-y:auto; font-size:12.5px; }
-  .import-preview .ip-summary{ font-family:'IBM Plex Mono', monospace; font-size:11px; color: var(--ink); margin-bottom: 8px; }
-  .import-preview ul{ list-style:none; }
-  .import-preview li{ padding: 3px 0; border-top: 1px solid var(--line); display:flex; gap:8px; }
-  .import-preview li:first-child{ border-top:none; }
-  .import-preview .ip-type{ font-family:'IBM Plex Mono', monospace; font-size:10px; color: var(--ink-faint); min-width: 54px; text-transform: uppercase; }
-  .modal-actions button:disabled{ opacity:.45; cursor:not-allowed; }
-
-  /* keyboard focus visibility + interactive non-button elements */
-  button:focus-visible, [role="switch"]:focus-visible, [role="checkbox"]:focus-visible, .daycell:focus-visible,
-  input:focus-visible, select:focus-visible, textarea:focus-visible{ outline: 2px solid var(--gold); outline-offset: 2px; }
-  [role="switch"], [role="checkbox"]{ cursor:pointer; }
-
-  @media (max-width: 720px){
-    .app{ padding: 24px 16px 70px; }
-    .layout{ grid-template-columns: 1fr; }
-    header{ align-items: flex-start; }
-    .header-actions{ gap: 14px; row-gap: 8px; }
-    .inline-add{ flex-wrap: wrap; }
-    .inline-add input[type="text"]{ flex-basis: 100%; }
-    .inline-add button{ min-height: 40px; flex: 1; }
-    .inline-add-opts .opt{ flex: 1 1 45%; }
-    .inline-add-opts input[type="text"]{ flex-basis: 100%; }
-    .panel{ padding: 16px; }
-    .entry{ flex-wrap: wrap; }
-    .entry-body{ flex-basis: calc(100% - 100px); }
-    .entry-meta{ flex-wrap: wrap; row-gap: 6px; }
-    .entry-tag-btn, .move-today, .restore-btn, .entry-meta .tag-chip{ min-height: 30px; padding: 5px 10px; }
-    .entry-del{ min-width: 32px; min-height: 32px; font-size: 18px; }
-    .entry .marker, .note-row .marker{ width: 22px; height: 22px; }
-    .quick-form .time-row{ flex-wrap: wrap; }
-    .quick-form .time-row input[type="text"], .quick-form select, .quick-form input[type="date"], .quick-form input[type="time"]{ flex: 1 1 140px; min-height: 38px; }
-    .tag-chip-row .tag-chip{ min-height: 34px; padding: 6px 12px; }
-    .daycell{ font-size: 12px; padding-top: 3px; }
-    .modal-card{ padding: 16px; max-height: 88vh; }
-    .modal-actions{ flex-direction: column; }
-    .modal-actions a, .modal-actions button{ justify-content: center; min-height: 40px; }
-    .manage-tag-row{ flex-wrap: wrap; }
-    .toast{ bottom: 14px; }
-    .quick-form .hint{ display: none; }
-    .quick-form .form-actions button{ flex: 1; min-height: 40px; }
-    .todo-topbar-actions{ width: 100%; }
-    .todo-topbar-actions .share-btn{ flex: 1; justify-content: center; min-height: 40px; }
+  /* touch: every control gets a 44px target */
+  @media (max-width:720px), (pointer:coarse){
+    .tag-chip, .chip{ min-height:44px; }
   }
+
+  /* tag inputs keep their suggestions but drop the native dropdown arrow */
+  input[list]::-webkit-calendar-picker-indicator{ display:none !important; }
+
+  .cal-disclosure[aria-expanded="true"] .ic{ transform:rotate(180deg); }
+  .cal-disclosure .ic{ transition:transform .2s var(--ease); }
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+<symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+<symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+<symbol id="i-calendar" viewBox="0 0 24 24"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></symbol>
+<symbol id="i-calendar-check" viewBox="0 0 24 24"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="m9 16 2 2 4-4"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
+<symbol id="i-repeat" viewBox="0 0 24 24"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></symbol>
+<symbol id="i-tag" viewBox="0 0 24 24"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></symbol>
+<symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol>
+<symbol id="i-bell-off" viewBox="0 0 24 24"><path d="M8.7 3A6 6 0 0 1 18 8a21.3 21.3 0 0 0 .6 5"/><path d="M17 17H3s3-2 3-9a4.67 4.67 0 0 1 .3-1.7"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><path d="m2 2 20 20"/></symbol>
+<symbol id="i-volume" viewBox="0 0 24 24"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.364 18.364a9 9 0 0 0 0-12.728"/></symbol>
+<symbol id="i-archive" viewBox="0 0 24 24"><rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></symbol>
+<symbol id="i-settings" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-share" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+<symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></symbol>
+<symbol id="i-list-checks" viewBox="0 0 24 24"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></symbol>
+<symbol id="i-circle-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
+<symbol id="i-file-text" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+<symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+<symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></symbol>
+</defs></svg>
 
 <div class="app">
-  <header>
-    <div class="brand">
-      <h1>Rally<span class="version-tag" id="versionTag"></span></h1>
-      <p>focus now, get it done</p>
+  <header class="app-header">
+    <div class="titles">
+      <h1 class="screen-title" id="screenTitle">Calendar</h1>
+      <p class="screen-sub" id="screenSub"></p>
     </div>
-    <div class="header-actions">
-      <button class="theme-btn" id="themeToggle">Dark mode</button>
-      <button class="archive-btn" id="syncBtn">Sync<span class="sync-dot" id="syncDot" style="display:none;"></span></button>
-      <button class="archive-btn" id="archiveBtn">Archive<span class="badge" id="archiveBadge" style="display:none;">0</span></button>
-      <div class="focus-toggle" id="focusToggle" role="switch" aria-checked="true" aria-label="Focus mode" tabindex="0">
-        <span id="focusLabel">Focus mode</span>
-        <div class="switch on" id="focusSwitch"></div>
-      </div>
-    </div>
+    <button type="button" class="icon-btn" id="settingsBtn" aria-label="Settings"><svg class="ic" aria-hidden="true"><use href="#i-settings"/></svg></button>
+    <button type="button" class="btn-add" id="addBtn" aria-label="Add a chore, reminder, or note"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg><span>Add</span></button>
   </header>
 
-  <nav class="tabbar">
-    <button id="tabCalendar" class="active">Calendar</button>
-    <button id="tabTodo">Todo List</button>
-  </nav>
-
-  <div class="layout" id="layout">
-    <section class="panel" id="calPanel">
-      <button type="button" class="cal-disclosure" id="calDisclosure" aria-expanded="false" aria-controls="calBody" style="display:none;">Show calendar ▸</button>
-      <div id="calBody">
-        <div class="cal-nav">
-          <div class="month-label" id="monthLabel" aria-live="polite"></div>
-          <div class="cal-nav-btns">
-            <button id="prevMonth" aria-label="Previous month">‹</button>
-            <button id="todayBtn" title="Jump to today" style="font-family:'IBM Plex Sans';font-size:11px;">Today</button>
-            <button id="nextMonth" aria-label="Next month">›</button>
+  <main>
+    <div class="view" id="layout">
+      <section class="card cal-card" id="calPanel">
+        <button type="button" class="cal-disclosure" id="calDisclosure" aria-expanded="false" aria-controls="calBody" style="display:none;"><span>Show calendar</span><svg class="ic" aria-hidden="true"><use href="#i-chevron-down"/></svg></button>
+        <div id="calBody">
+          <div class="cal-nav">
+            <div class="month-label" id="monthLabel" aria-live="polite"></div>
+            <div class="cal-nav-btns">
+              <button type="button" id="prevMonth" aria-label="Previous month"><svg class="ic" aria-hidden="true"><use href="#i-chevron-left"/></svg></button>
+              <button type="button" id="todayBtn" title="Jump to today">Today</button>
+              <button type="button" id="nextMonth" aria-label="Next month"><svg class="ic" aria-hidden="true"><use href="#i-chevron-right"/></svg></button>
+            </div>
           </div>
+          <div class="weekdays" aria-hidden="true"><div>Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div></div>
+          <div class="daygrid" id="dayGrid" role="group" aria-label="Month calendar"></div>
+          <p class="caption" id="calFocusHint" style="display:none;margin-top:10px;">Picking another day leaves Focus mode so you can see it.</p>
         </div>
-        <div class="weekdays" aria-hidden="true">
-          <div>Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div>
-        </div>
-        <div class="daygrid" id="dayGrid" role="group" aria-label="Month calendar"></div>
-        <div class="section-hint" id="calFocusHint" style="display:none;margin:10px 0 0;">Picking another day leaves Focus mode so you can see it.</div>
-      </div>
-    </section>
-
-    <section class="panel" id="sidePanel">
-      <div class="side-date" id="sideDate">—</div>
-      <div class="side-sub" id="sideSub">&nbsp;</div>
-
-      <div class="entry-btns">
-        <button id="btnNote"><span class="dotmark"></span>Take a note</button>
-        <button id="btnTask"><span class="dotmark"></span>Set a reminder</button>
-      </div>
-
-      <div class="quick-form" id="noteForm">
-        <textarea id="noteText" placeholder="What's on your mind…" aria-label="Note text"></textarea>
-        <div class="time-row">
-          <label for="noteTags">Tags</label>
-          <input type="text" id="noteTags" list="tagSuggestions" placeholder="Optional, comma-separated" aria-label="Tags (optional)">
-        </div>
-        <div class="form-actions">
-          <span class="hint">⌘+Enter to save</span>
-          <button type="button" id="noteCancel">Cancel</button>
-          <button type="button" class="save-btn disabled" id="noteSave">Save note</button>
-        </div>
-      </div>
-
-      <div class="quick-form" id="taskForm">
-        <textarea id="taskText" placeholder="What needs doing…" aria-label="Reminder text"></textarea>
-        <div class="time-row">
-          <label for="taskDate">Date</label>
-          <input type="date" id="taskDate">
-        </div>
-        <div class="time-row">
-          <label for="taskTime">Time</label>
-          <input type="time" id="taskTime">
-        </div>
-        <div class="time-row">
-          <label for="taskRecur">Repeat</label>
-          <select id="taskRecur"><option value="">No repeat</option><option value="daily">Daily</option><option value="weekdays">Weekdays</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select>
-        </div>
-        <div class="time-row">
-          <label for="taskTags">Tags</label>
-          <input type="text" id="taskTags" list="tagSuggestions" placeholder="Optional, comma-separated" aria-label="Tags (optional)">
-        </div>
-        <div class="form-actions">
-          <span class="hint">⌘+Enter to save</span>
-          <button type="button" id="taskCancel">Cancel</button>
-          <button type="button" class="save-btn disabled" id="taskSave">Add reminder</button>
-        </div>
-      </div>
-
-      <div class="legend">Row buttons: circle = check off · → today / → later = reschedule · ↻ = repeat · + tag = add tags · × = delete (with Undo)</div>
-      <div class="agenda-header">
-        <span id="agendaLabel">ENTRIES</span>
-        <span id="agendaCount"></span>
-      </div>
-      <div class="agenda-list" id="agendaList"></div>
-    </section>
-  </div>
-
-  <section class="todo-view" id="todoView">
-    <div class="todo-topbar">
-      <div>
-        <div class="side-date" id="todoDateLabel">Today</div>
-        <div class="side-sub" id="todoDateSub">&nbsp;</div>
-      </div>
-      <div class="todo-topbar-actions">
-        <button class="share-btn secondary" id="importBtn">Import list</button>
-        <button class="share-btn" id="shareBtn">Share list</button>
-      </div>
+      </section>
+      <section class="section" id="sidePanel">
+        <div class="section-head"><span class="section-label" id="agendaLabel"></span></div>
+        <div class="prog-wrap" id="agendaProg" style="display:none;"><div class="progress" role="progressbar" aria-label="Done today" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="agendaBar"></span></div><div class="progress-cap" id="agendaCap"></div></div>
+        <div class="agenda-list" id="agendaList"></div>
+      </section>
     </div>
 
-    <div class="legend">Row buttons: circle = check off · → today / → later = reschedule · ↻ = repeat · + tag = add tags · × = delete (with Undo)</div>
+    <div class="view" id="todoView" style="display:none;">
+      <div class="tag-filter-row" id="tagFilterRow" style="display:none;"></div>
 
-    <div class="tag-filter-row" id="tagFilterRow" style="display:none;"></div>
-    <button class="show-all-link" id="manageTagsBtn" style="display:none;">Edit tags</button>
+      <section class="section" id="choreSection">
+        <button type="button" class="section-head collapse-btn" data-target="choreBody" aria-expanded="true" aria-label="Collapse Chore Chart"><span class="section-label">Chore Chart</span><svg class="ic" aria-hidden="true"><use href="#i-chevron-down"/></svg></button>
+        <div class="collapsible" id="choreBody"><div class="collapsible-inner">
+          <p class="section-hint" id="choreHint"></p>
+          <div class="prog-wrap" id="choreProg" style="display:none;"><div class="progress" role="progressbar" aria-label="Chores done" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="choreBar"></span></div><div class="progress-cap" id="choreCap"></div></div>
+          <div class="agenda-list" id="choreList"></div>
+        </div></div>
+      </section>
 
-    <div class="panel todo-section" id="choreSection">
-      <div class="todo-section-header">
-        <h2>Chore Chart</h2>
-        <div class="header-right">
-          <span class="section-count" id="choreCount"></span>
-          <button class="collapse-btn" data-target="choreBody" aria-label="Collapse Chore Chart" aria-expanded="true">▾</button>
-        </div>
-      </div>
-      <div class="todo-section-body" id="choreBody">
-        <div class="section-hint" id="choreHint">No date or time needed — just today's must-dos. Unfinished chores automatically roll to tomorrow. Rolled chores show where they came from.</div>
-        <div class="inline-add chore-add">
-          <input type="text" id="choreInput" placeholder="Add a chore for today…" aria-label="New chore">
-          <button type="button" id="choreAddBtn">Add</button>
-        </div>
-        <div class="inline-add-opts">
-          <label class="opt"><span>Repeat</span><select id="choreRecur" aria-label="Repeat"><option value="">No repeat</option><option value="daily">Daily</option><option value="weekdays">Weekdays</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></label>
-          <input type="text" id="choreTags" list="tagSuggestions" placeholder="Tags (optional)" aria-label="Tags (optional)">
-        </div>
-        <div class="agenda-list" id="choreList"></div>
-      </div>
+      <section class="section" id="remindersSection">
+        <button type="button" class="section-head collapse-btn" data-target="remindersBody" aria-expanded="true" aria-label="Collapse Today's Reminders"><span class="section-label">Today's Reminders</span><svg class="ic" aria-hidden="true"><use href="#i-chevron-down"/></svg></button>
+        <div class="collapsible" id="remindersBody"><div class="collapsible-inner">
+          <div class="prog-wrap" id="reminderProg" style="display:none;"><div class="progress" role="progressbar" aria-label="Reminders done" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="reminderBar"></span></div><div class="progress-cap" id="reminderCap"></div></div>
+          <div class="agenda-list" id="reminderList"></div>
+        </div></div>
+      </section>
+
+      <section class="section" id="notesSection">
+        <button type="button" class="section-head collapse-btn" data-target="notesBody" aria-expanded="true" aria-label="Collapse Notes"><span class="section-label">Notes</span><span style="display:inline-flex;align-items:center;"><span class="section-count" id="notesCount"></span><svg class="ic" aria-hidden="true"><use href="#i-chevron-down"/></svg></span></button>
+        <div class="collapsible" id="notesBody"><div class="collapsible-inner">
+          <div class="search"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><input type="text" id="notesFilter" placeholder="Search notes" aria-label="Search notes"></div>
+          <div class="agenda-list" id="notesList"></div>
+          <button type="button" class="show-all-link" id="notesShowAll" style="display:none;">Show all notes</button>
+        </div></div>
+      </section>
     </div>
 
-    <div class="panel todo-section" id="remindersSection">
-      <div class="todo-section-header">
-        <h2>Today's Reminders</h2>
-        <div class="header-right">
-          <span class="section-count" id="reminderCount"></span>
-          <button class="collapse-btn" data-target="remindersBody" aria-label="Collapse Today's Reminders" aria-expanded="true">▾</button>
-        </div>
-      </div>
-      <div class="todo-section-body" id="remindersBody">
-        <div class="notify-row">
-          <div class="mini-toggle" id="notifyToggle" role="switch" aria-checked="false" aria-label="Notifications for timed reminders" tabindex="0"><span class="switch" id="notifySwitch"></span><span>Notifications</span></div>
-          <div class="mini-toggle" id="soundToggle" role="switch" aria-checked="false" aria-label="Chime sound with notifications" tabindex="0"><span class="switch" id="soundSwitch"></span><span>Sound</span></div>
-        </div>
-        <div class="section-hint" id="notifyHint">Reminders alert only while Rally is open in a tab.</div>
-        <div class="inline-add">
-          <input type="text" id="reminderInput" placeholder="Add a reminder for today…" aria-label="New reminder">
-          <button type="button" id="reminderAddBtn">Add</button>
-        </div>
-        <div class="inline-add-opts">
-          <label class="opt"><span>Time</span><input type="time" id="reminderTimeInput" aria-label="Reminder time (optional)"></label>
-          <label class="opt"><span>Repeat</span><select id="reminderRecur" aria-label="Repeat"><option value="">No repeat</option><option value="daily">Daily</option><option value="weekdays">Weekdays</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></label>
-          <input type="text" id="reminderTags" list="tagSuggestions" placeholder="Tags (optional)" aria-label="Tags (optional)">
-        </div>
-        <div class="agenda-list" id="reminderList"></div>
-      </div>
+    <div class="view" id="archiveView" style="display:none;">
+      <div class="card stat" id="lifetimeCompletedLine">Lifetime completed: 0</div>
+      <section class="section">
+        <div class="section-head"><span class="section-label">Recently completed</span><span class="section-count" id="completedCount"></span></div>
+        <div class="agenda-list" id="archiveCompletedList"></div>
+      </section>
+      <section class="section">
+        <div class="section-head"><span class="section-label">Recently deleted</span><span class="section-count" id="deletedCount"></span></div>
+        <div class="agenda-list" id="archiveDeletedList"></div>
+      </section>
     </div>
-
-    <div class="panel todo-section" id="notesSection">
-      <div class="todo-section-header">
-        <h2>Notes</h2>
-        <div class="header-right">
-          <span class="section-count" id="notesCount"></span>
-          <button class="collapse-btn" data-target="notesBody" aria-label="Collapse Notes" aria-expanded="true">▾</button>
-        </div>
-      </div>
-      <div class="todo-section-body" id="notesBody">
-        <div class="inline-add note-add">
-          <input type="text" id="noteInlineInput" placeholder="Jot a quick note…" aria-label="New note">
-          <button type="button" id="noteAddBtn">Add</button>
-        </div>
-        <div class="inline-add-opts">
-          <input type="text" id="noteInlineTags" list="tagSuggestions" placeholder="Tags (optional)" aria-label="Tags (optional)">
-        </div>
-        <div class="filter-row">
-          <input type="text" id="notesFilter" placeholder="Search notes…" aria-label="Search notes">
-        </div>
-        <div class="agenda-list" id="notesList"></div>
-        <button class="show-all-link" id="notesShowAll" style="display:none;">Show all notes</button>
-      </div>
-    </div>
-  </section>
+  </main>
 </div>
+
+<nav class="tabbar" aria-label="Main">
+  <div class="tabbar-inner">
+    <button type="button" class="tab active" id="tabCalendar" aria-current="page"><svg class="ic" aria-hidden="true"><use href="#i-calendar"/></svg><span>Calendar</span></button>
+    <button type="button" class="tab" id="tabTodo"><svg class="ic" aria-hidden="true"><use href="#i-list-checks"/></svg><span>Todo</span></button>
+    <button type="button" class="tab" id="tabArchive"><svg class="ic" aria-hidden="true"><use href="#i-archive"/></svg><span>Archive</span><span class="badge" id="archiveBadge" style="display:none;">0</span></button>
+  </div>
+</nav>
 
 <datalist id="tagSuggestions"></datalist>
 <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastMsg"></span><button type="button" id="toastAction" style="display:none;"></button></div>
+
+<div class="modal-overlay" id="addSheet">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="addSheetTitle">
+    <div id="addTypeStep">
+      <h3 id="addSheetTitle">Add</h3>
+      <div class="type-grid">
+        <button type="button" class="type-btn" data-type="chore"><svg class="ic" aria-hidden="true"><use href="#i-circle-check"/></svg><span><b>Chore</b><small>Today's must-do, no time needed</small></span></button>
+        <button type="button" class="type-btn" data-type="task"><svg class="ic" aria-hidden="true"><use href="#i-clock"/></svg><span><b>Reminder</b><small>Pick a date and time</small></span></button>
+        <button type="button" class="type-btn" data-type="note"><svg class="ic" aria-hidden="true"><use href="#i-file-text"/></svg><span><b>Note</b><small>Jot something down</small></span></button>
+      </div>
+    </div>
+    <div id="addFormStep" style="display:none;">
+      <div class="sheet-head"><button type="button" class="icon-btn" id="addBack" aria-label="Back"><svg class="ic" aria-hidden="true"><use href="#i-chevron-left"/></svg></button><h3 id="addFormTitle">New chore</h3></div>
+      <label class="field"><span id="addTextLabel">What needs doing?</span><textarea id="addText" rows="3"></textarea></label>
+      <div class="field-row" id="addWhen">
+        <label class="field"><span>Date</span><input type="date" id="addDate"></label>
+        <label class="field"><span>Time (optional)</span><input type="time" id="addTime"></label>
+      </div>
+      <label class="field" id="addRecurField"><span>Repeat</span><select id="addRecur"><option value="">No repeat</option><option value="daily">Daily</option><option value="weekdays">Weekdays</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></label>
+      <label class="field"><span>Tags (optional, comma-separated)</span><input type="text" id="addTags" list="tagSuggestions"></label>
+      <div class="add-actions"><button type="button" class="btn" id="addCancel">Cancel</button><button type="button" class="btn primary" id="addSave" disabled>Add</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="settingsSheet">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <h3 id="settingsTitle">Settings</h3>
+    <p class="set-group-label">Appearance</p>
+    <div class="set-row" id="themeToggle" role="switch" aria-checked="false" aria-label="Dark mode" tabindex="0"><svg class="ic" aria-hidden="true"><use href="#i-moon"/></svg><span class="set-text">Dark mode</span><span class="switch" id="themeSwitch"></span></div>
+    <div class="set-row" id="focusToggle" role="switch" aria-checked="true" aria-label="Focus mode" tabindex="0"><svg class="ic" aria-hidden="true"><use href="#i-calendar"/></svg><span class="set-text">Focus mode<small>Calendar tab shows only today</small></span><span class="switch on" id="focusSwitch"></span></div>
+    <p class="set-group-label">Reminders</p>
+    <div class="set-row" id="notifyToggle" role="switch" aria-checked="false" aria-label="Notifications for timed reminders" tabindex="0"><svg class="ic" aria-hidden="true"><use href="#i-bell"/></svg><span class="set-text">Notifications</span><span class="switch" id="notifySwitch"></span></div>
+    <div class="set-row" id="soundToggle" role="switch" aria-checked="false" aria-label="Chime sound with notifications" tabindex="0"><svg class="ic" aria-hidden="true"><use href="#i-volume"/></svg><span class="set-text">Sound</span><span class="switch" id="soundSwitch"></span></div>
+    <p class="set-caption" id="notifyHint">Reminders alert only while Rally is open in a tab.</p>
+    <p class="set-group-label">Sync &amp; data</p>
+    <button type="button" class="set-row" id="syncBtn"><svg class="ic" aria-hidden="true"><use href="#i-refresh"/></svg><span class="set-text">Sync<small id="settingsSyncLine">Not connected</small></span><span class="sync-dot" id="syncDot" style="display:none;"></span><svg class="ic" aria-hidden="true"><use href="#i-chevron-right"/></svg></button>
+    <button type="button" class="set-row" id="manageTagsBtn"><svg class="ic" aria-hidden="true"><use href="#i-tag"/></svg><span class="set-text">Manage tags</span><svg class="ic" aria-hidden="true"><use href="#i-chevron-right"/></svg></button>
+    <button type="button" class="set-row" id="importBtn"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg><span class="set-text">Import a list</span><svg class="ic" aria-hidden="true"><use href="#i-chevron-right"/></svg></button>
+    <button type="button" class="set-row" id="shareBtn"><svg class="ic" aria-hidden="true"><use href="#i-share"/></svg><span class="set-text">Share today's list</span><svg class="ic" aria-hidden="true"><use href="#i-chevron-right"/></svg></button>
+    <p class="set-version">Rally <span id="versionTag"></span></p>
+    <button type="button" class="modal-close" id="closeSettingsBtn">Done</button>
+  </div>
+</div>
 
 <div class="modal-overlay" id="shareModal">
   <div class="modal-card" role="dialog" aria-modal="true">
@@ -1170,23 +539,6 @@
       <button type="button" class="primary" id="doImportBtn" disabled>Import</button>
       <button type="button" id="closeImportBtn">Cancel</button>
     </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="archiveModal">
-  <div class="modal-card" role="dialog" aria-modal="true">
-    <h3>Archive</h3>
-    <div class="modal-sub">Deleted and completed items stay here for 30 days, then are removed automatically.</div>
-    <div class="modal-sub" id="lifetimeCompletedLine">Lifetime completed: 0</div>
-    <div class="archive-section">
-      <h4>Recently completed</h4>
-      <div id="archiveCompletedList"></div>
-    </div>
-    <div class="archive-section">
-      <h4>Recently deleted</h4>
-      <div id="archiveDeletedList"></div>
-    </div>
-    <button type="button" class="modal-close" id="closeArchiveBtn">Close</button>
   </div>
 </div>
 
@@ -1253,10 +605,12 @@
   </div>
 </div>
 
+
+
 <script>
 (function(){
   const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  const APP_VERSION = '2.3.0';
+  const APP_VERSION = '2.4.0';
   let entries = [];
   let viewYear, viewMonth;
   let selectedDate = fmt(new Date());
@@ -1480,6 +834,8 @@
         statusLine.textContent = base + (realtimeStatus === 'live' ? ' · instant push is live' : '');
       }
     }
+    const settingsLine = document.getElementById('settingsSyncLine');
+    if(settingsLine){ settingsLine.textContent = !isSyncConfigured() ? 'Not connected' : (statusLine ? statusLine.textContent : ''); }
     const badge = document.getElementById('realtimeBadge');
     if(badge){
       badge.className = 'realtime-badge' + (realtimeStatus === 'live' ? '' : ' off');
@@ -1727,7 +1083,12 @@
   // ---- Theme ----
   function applyTheme(theme){
     document.documentElement.setAttribute('data-theme', theme);
-    document.getElementById('themeToggle').textContent = theme === 'dark' ? 'Light mode' : 'Dark mode';
+    const t = document.getElementById('themeToggle');
+    if(t) t.setAttribute('aria-checked', String(theme === 'dark'));
+    const sw = document.getElementById('themeSwitch');
+    if(sw) sw.classList.toggle('on', theme === 'dark');
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if(meta) meta.setAttribute('content', theme === 'dark' ? '#141311' : '#faf9f7');
     try{ localStorage.setItem(THEME_KEY, theme); }catch(e){}
   }
   function initTheme(){
@@ -1815,221 +1176,247 @@
   }
 
   function renderSideHeader(){
-    const dateEl = document.getElementById('sideDate');
-    const subEl = document.getElementById('sideSub');
-    if(focusMode){
-      dateEl.textContent = 'Today';
-      subEl.textContent = niceDate(fmt(todayDate));
-      selectedDate = fmt(todayDate);
-    } else {
-      dateEl.textContent = selectedDate === fmt(todayDate) ? 'Today' : niceDate(selectedDate).split(',')[0];
-      subEl.textContent = niceDate(selectedDate);
+    const nowStr = fmt(todayDate);
+    if(focusMode){ selectedDate = nowStr; }
+    const isToday = selectedDate === nowStr;
+    document.getElementById('agendaLabel').textContent = isToday ? 'Today · ' + shortDate(nowStr) : shortDate(selectedDate);
+  }
+
+  // ---- v2.4.0 view helpers: icons, empty states, progress, headers ----
+  function ic(name, cls){
+    return '<svg class="ic' + (cls ? ' ' + cls : '') + '" aria-hidden="true" focusable="false"><use href="#i-' + name + '"/></svg>';
+  }
+  function emptyState(icon, msg){
+    const d = document.createElement('div');
+    d.className = 'empty-state';
+    d.innerHTML = ic(icon, 'ic-lg');
+    const p = document.createElement('p');
+    p.textContent = msg;
+    d.appendChild(p);
+    return d;
+  }
+  function setProgress(prefix, done, total){
+    const wrap = document.getElementById(prefix + 'Prog');
+    if(!wrap) return;
+    if(!total){ wrap.style.display = 'none'; return; }
+    wrap.style.display = '';
+    const pct = Math.round(done / total * 100);
+    document.getElementById(prefix + 'Bar').style.width = pct + '%';
+    document.getElementById(prefix + 'Cap').textContent = done + ' of ' + total + ' done';
+    wrap.querySelector('.progress').setAttribute('aria-valuenow', String(pct));
+  }
+  function reducedMotion(){
+    return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  }
+  function closeActionPanels(){
+    document.querySelectorAll('.entry.open').forEach(el=>{
+      el.classList.remove('open');
+      const m = el.querySelector('.entry-main');
+      if(m) m.setAttribute('aria-expanded', 'false');
+    });
+  }
+  function updateHeader(){
+    const t = document.getElementById('screenTitle');
+    const s = document.getElementById('screenSub');
+    const nowLabel = niceDate(fmt(todayDate));
+    if(currentView === 'calendar'){ t.textContent = 'Calendar'; s.textContent = nowLabel; }
+    else if(currentView === 'todo'){ t.textContent = 'Today'; s.textContent = nowLabel; }
+    else { t.textContent = 'Archive'; s.textContent = 'Kept for 30 days, then removed'; }
+    document.getElementById('addBtn').style.display = currentView === 'archive' ? 'none' : '';
+  }
+  async function toggleDone(e, card){
+    const wasDone = e.done;
+    if(!wasDone && card && !reducedMotion()){
+      card.style.maxHeight = card.offsetHeight + 'px';
+      void card.offsetWidth;
+      card.classList.add('completing');
+      await new Promise(r => setTimeout(r, 260));
     }
+    e.done = !e.done;
+    e.completedAt = e.done ? Date.now() : null;
+    e.updatedAt = Date.now();
+    if(!wasDone && e.done){ incrementLifetimeCompleted(); }
+    await saveEntries();
+    refreshUI();
   }
 
   function buildEntryRow(e, opts){
     opts = opts || {};
     const nowStr = fmt(todayDate);
+    const isTask = e.type === 'task', isChore = e.type === 'chore', isNote = e.type === 'note';
+    const pastDay = isTask && !e.done && e.date < nowStr;
+    const lateToday = isTask && !e.done && e.date === nowStr && !!e.time && e.time < nowTimeStr();
+    const card = document.createElement('div');
+    card.className = 'entry t-' + e.type + (e.done ? ' done' : '') + ((pastDay || lateToday) ? ' overdue' : '');
+    card.dataset.id = e.id;
+    const top = document.createElement('div');
+    top.className = 'entry-top';
     const row = document.createElement('div');
-    row.className = 'entry' + ((e.type==='task' || e.type==='chore') && e.done ? ' done' : '');
+    row.className = 'entry-row';
 
-    const marker = document.createElement('div');
-    if(e.type === 'task' || e.type === 'chore'){
-      marker.className = 'marker' + (e.done ? ' checked' : '') + (e.type==='chore' ? ' chore-marker' : '');
-      marker.setAttribute('role', 'checkbox');
-      marker.setAttribute('aria-checked', String(!!e.done));
-      marker.setAttribute('aria-label', (e.done ? 'Mark not done: ' : 'Mark done: ') + e.text);
-      marker.tabIndex = 0;
-      marker.addEventListener('keydown', (ev)=>{ if(ev.key === ' ' || ev.key === 'Enter'){ ev.preventDefault(); marker.click(); } });
-      marker.addEventListener('click', async ()=>{
-        const wasDone = e.done;
-        e.done = !e.done;
-        e.completedAt = e.done ? Date.now() : null;
-        e.updatedAt = Date.now();
-        if(!wasDone && e.done){ incrementLifetimeCompleted(); }
-        await saveEntries();
-        refreshUI();
-      });
+    if(isNote){
+      const slot = document.createElement('span');
+      slot.className = 'check-slot';
+      slot.setAttribute('aria-hidden', 'true');
+      slot.innerHTML = '<i class="note-dot"></i>';
+      row.appendChild(slot);
     } else {
-      marker.className = 'marker note-marker';
-      marker.setAttribute('aria-hidden', 'true');
+      const check = document.createElement('button');
+      check.type = 'button';
+      check.className = 'check' + (e.done ? ' checked' : '');
+      check.setAttribute('role', 'checkbox');
+      check.setAttribute('aria-checked', String(!!e.done));
+      check.setAttribute('aria-label', (e.done ? 'Mark not done: ' : 'Mark done: ') + e.text);
+      check.innerHTML = '<span class="box">' + ic('check', 'ic-sm') + '</span>';
+      check.addEventListener('click', ev=>{ ev.stopPropagation(); toggleDone(e, card); });
+      row.appendChild(check);
     }
-    row.appendChild(marker);
 
-    const body = document.createElement('div');
-    body.className = 'entry-body';
-    const text = document.createElement('div');
+    const main = document.createElement('button');
+    main.type = 'button';
+    main.className = 'entry-main';
+    main.setAttribute('aria-expanded', 'false');
+    const copy = document.createElement('span');
+    copy.className = 'entry-copy';
+    const text = document.createElement('span');
     text.className = 'entry-text';
     text.textContent = e.text;
-    body.appendChild(text);
-
-    const meta = document.createElement('div');
+    copy.appendChild(text);
+    const meta = document.createElement('span');
     meta.className = 'entry-meta';
-    if(e.type === 'task'){
-      const timeSpan = document.createElement('span');
-      timeSpan.textContent = e.time ? e.time : 'no time set';
-      meta.appendChild(timeSpan);
-      if(opts.showDate){
-        const dateSpan = document.createElement('span');
-        dateSpan.textContent = shortDate(e.date);
-        meta.appendChild(dateSpan);
-      }
-      const isPastDay = e.date < nowStr;
-      const isLateToday = e.date === nowStr && e.time && e.time < nowTimeStr();
-      if(!e.done && (isPastDay || isLateToday)){
-        const late = document.createElement('span');
-        late.className = 'overdue late-tag';
-        late.textContent = isPastDay ? 'overdue' : 'late';
-        meta.appendChild(late);
-      }
-      if(e.date !== nowStr && opts.showDate){
-        const jumpBtn = document.createElement('button');
-        jumpBtn.className = 'move-today';
-        jumpBtn.textContent = '↗ calendar';
-        jumpBtn.title = 'View this day on the calendar';
-        jumpBtn.addEventListener('click', (ev)=>{
-          ev.stopPropagation();
-          jumpToCalendarDate(e.date);
-        });
-        meta.appendChild(jumpBtn);
-      }
-    } else if(e.type === 'chore'){
-      const tag = document.createElement('span');
-      tag.className = 'chore-tag';
-      tag.textContent = 'chore';
-      meta.appendChild(tag);
-      if(e.date < nowStr && !e.done){
-        const carried = document.createElement('span');
-        carried.className = 'carried';
-        carried.textContent = 'from ' + shortDate(e.date);
-        meta.appendChild(carried);
-      }
+    const addMeta = (txt, cls, icon)=>{
+      const s = document.createElement('span');
+      s.className = 'm' + (cls ? ' ' + cls : '');
+      if(icon) s.insertAdjacentHTML('afterbegin', ic(icon, 'ic-xs'));
+      s.appendChild(document.createTextNode(txt));
+      meta.appendChild(s);
+    };
+    const addTypeLabel = (label)=>{
+      const s = document.createElement('span');
+      s.className = 'm';
+      const dt = document.createElement('i');
+      dt.className = 'dot-type';
+      s.appendChild(dt);
+      s.appendChild(document.createTextNode(label));
+      meta.appendChild(s);
+    };
+    if(isTask){
+      addMeta(e.time ? e.time : 'no time set', '', e.time ? 'clock' : '');
+      if(opts.showDate) addMeta(shortDate(e.date));
+      if(pastDay) addMeta('Overdue', 'm-danger');
+      else if(lateToday) addMeta('Late', 'm-danger');
+    } else if(isChore){
+      addTypeLabel('chore');
+      if(e.date < nowStr && !e.done) addMeta('from ' + shortDate(e.date));
     } else {
-      const noteSpan = document.createElement('span');
-      noteSpan.textContent = 'note';
-      meta.appendChild(noteSpan);
+      addTypeLabel(opts.showNoteDate ? (e.date === nowStr ? 'today' : shortDate(e.date)) : 'note');
     }
-
-    if(e.type === 'task' || e.type === 'chore'){
-      const recurBtn = document.createElement('button');
-      recurBtn.type = 'button';
-      recurBtn.className = 'entry-tag-btn' + (e.recurring ? ' has-tag' : '');
-      recurBtn.textContent = e.recurring ? ('↻ ' + e.recurring) : '↻ repeat';
-      recurBtn.addEventListener('click', (ev)=>{
-        ev.stopPropagation();
-        const key = 'recur:' + e.id;
-        if(openPopoverKey === key){ closePopovers(); return; }
-        openRecurPicker(e.id, row);
-      });
-      meta.appendChild(recurBtn);
-    }
-
-    if(!Array.isArray(e.tags)) e.tags = [];
-    e.tags.forEach(t=>{
-      const pill = document.createElement('span');
-      pill.className = 'tag-chip tag-pill-display';
-      pill.textContent = '#' + t;
-      meta.appendChild(pill);
+    if(e.recurring) addMeta(e.recurring, '', 'repeat');
+    (Array.isArray(e.tags) ? e.tags : []).forEach(t => addMeta('#' + t, 'm-tag'));
+    copy.appendChild(meta);
+    main.appendChild(copy);
+    main.insertAdjacentHTML('beforeend', ic('chevron-down', 'chev'));
+    main.addEventListener('click', ()=>{
+      const willOpen = !card.classList.contains('open');
+      closeActionPanels();
+      if(willOpen){ card.classList.add('open'); main.setAttribute('aria-expanded', 'true'); }
     });
-    const tagBtn = document.createElement('button');
-    tagBtn.type = 'button';
-    tagBtn.className = 'entry-tag-btn';
-    tagBtn.textContent = '+ tag';
-    tagBtn.addEventListener('click', (ev)=>{
-      ev.stopPropagation();
-      const key = 'tag:' + e.id;
+    row.appendChild(main);
+    top.appendChild(row);
+
+    // labeled actions (revealed by tapping the row)
+    const guard = (key, opener)=> ()=>{
       if(openPopoverKey === key){ closePopovers(); refreshUI(); return; }
-      openTagPicker(e.id, row);
+      opener();
+    };
+    const acts = [];
+    if(!isNote) acts.push({ icon: 'check', label: e.done ? 'Mark not done' : 'Check off', fn: ()=> toggleDone(e, card) });
+    if(isTask && !e.done && e.date !== nowStr) acts.push({ icon: 'calendar-check', label: 'Move to today', fn: async ()=>{ e.date = nowStr; e.updatedAt = Date.now(); await saveEntries(); refreshUI(); } });
+    if(!isNote && !e.done) acts.push({ icon: 'clock', label: 'Reschedule', fn: guard('later:' + e.id, ()=> openReschedule(e.id, card)) });
+    if(isTask && opts.showDate && e.date !== nowStr) acts.push({ icon: 'calendar', label: 'Show on calendar', fn: ()=> jumpToCalendarDate(e.date) });
+    if(!isNote) acts.push({ icon: 'repeat', label: e.recurring ? 'Repeats ' + e.recurring : 'Repeat', fn: guard('recur:' + e.id, ()=> openRecurPicker(e.id, card)) });
+    if(isNote) acts.push({ icon: 'pencil', label: 'Edit', fn: guard('edit:' + e.id, ()=> openNoteEditor(e.id, card)) });
+    acts.push({ icon: 'tag', label: 'Tags', fn: guard('tag:' + e.id, ()=> openTagPicker(e.id, card)) });
+    acts.push({ icon: 'trash', label: 'Delete', danger: true, fn: ()=> softDelete(e) });
+    const wrap = document.createElement('div');
+    wrap.className = 'entry-actions-wrap';
+    const panel = document.createElement('div');
+    panel.className = 'entry-actions';
+    acts.forEach(a=>{
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'action-btn' + (a.danger ? ' danger' : '');
+      b.innerHTML = ic(a.icon) + '<span></span>';
+      b.lastChild.textContent = a.label;
+      b.setAttribute('aria-label', a.label + ': ' + e.text);
+      b.addEventListener('click', ev=>{ ev.stopPropagation(); a.fn(); });
+      panel.appendChild(b);
     });
-    meta.appendChild(tagBtn);
-    body.appendChild(meta);
-    row.appendChild(body);
+    wrap.appendChild(panel);
 
-    if(opts.showDate && e.type === 'task' && !e.done){
-      const moveBtn = document.createElement('button');
-      moveBtn.className = 'move-today';
-      moveBtn.textContent = '→ today';
-      moveBtn.title = 'Move to today';
-      moveBtn.addEventListener('click', async (ev)=>{
-        ev.stopPropagation();
-        e.date = nowStr;
-        e.updatedAt = Date.now();
-        await saveEntries();
-        refreshUI();
-      });
-      row.appendChild(moveBtn);
-    }
-
-    if(e.type === 'task' && !e.done){
-      const laterBtn = document.createElement('button');
-      laterBtn.className = 'move-today';
-      laterBtn.textContent = '→ later';
-      laterBtn.title = 'Reschedule to a different date or time';
-      laterBtn.addEventListener('click', (ev)=>{
-        ev.stopPropagation();
+    // swipe-left strip (touch): Check off / Later / Delete
+    if(!isNote && !e.done){
+      const strip = document.createElement('div');
+      strip.className = 'swipe-actions';
+      const sw = (cls, icon, label, fn)=>{
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = cls;
+        b.innerHTML = ic(icon) + '<span></span>';
+        b.lastChild.textContent = label;
+        b.setAttribute('aria-label', label + ': ' + e.text);
+        b.addEventListener('click', ev=>{ ev.stopPropagation(); fn(); });
+        strip.appendChild(b);
+      };
+      sw('sw-check', 'check', 'Check off', ()=> toggleDone(e, card));
+      sw('sw-later', 'clock', 'Later', ()=>{
+        if(top._close) top._close();
         const key = 'later:' + e.id;
         if(openPopoverKey === key){ closePopovers(); return; }
-        openReschedule(e.id, row);
+        openReschedule(e.id, card);
       });
-      row.appendChild(laterBtn);
+      sw('sw-del', 'trash', 'Delete', ()=> softDelete(e));
+      top.appendChild(strip);
+      attachSwipe(top, row);
     }
 
-    if(e.type === 'chore' && !e.done){
-      const laterBtn = document.createElement('button');
-      laterBtn.className = 'move-today';
-      laterBtn.textContent = '→ later';
-      laterBtn.title = 'Reschedule as a future reminder';
-      laterBtn.addEventListener('click', (ev)=>{
-        ev.stopPropagation();
-        const key = 'later:' + e.id;
-        if(openPopoverKey === key){ closePopovers(); return; }
-        openReschedule(e.id, row);
-      });
-      row.appendChild(laterBtn);
-    }
-
-    const del = document.createElement('button');
-    del.className = 'entry-del';
-    del.innerHTML = '&times;';
-    del.title = 'Delete';
-    del.addEventListener('click', ()=>{ softDelete(e); });
-    row.appendChild(del);
-
-    if(e.type === 'chore' && !e.done){
-      attachSwipe(row, e);
-    }
-
-    labelRowActions(row, e);
-    return row;
+    card.appendChild(top);
+    card.appendChild(wrap);
+    return card;
   }
 
   // ---- Swipe-to-reschedule (chores only) ----
-  function attachSwipe(row, e){
-    row.dataset.swipeable = '1';
-    let startX = 0, startY = 0, dx = 0, tracking = false, horizontal = false;
-    row.addEventListener('touchstart', (ev)=>{
+  function attachSwipe(top, row){
+    const OPEN = 216;
+    let startX = 0, startY = 0, dx = 0, tracking = false, horizontal = false, isOpen = false;
+    top._close = ()=>{ isOpen = false; row.style.transform = ''; top.classList.remove('swiped', 'dragging'); };
+    top.addEventListener('touchstart', ev=>{
+      document.querySelectorAll('.entry-top.swiped').forEach(el=>{ if(el !== top && el._close) el._close(); });
       const t = ev.touches[0];
       startX = t.clientX; startY = t.clientY; dx = 0; tracking = true; horizontal = false;
       row.style.transition = 'none';
     }, { passive: true });
-    row.addEventListener('touchmove', (ev)=>{
+    top.addEventListener('touchmove', ev=>{
       if(!tracking) return;
       const t = ev.touches[0];
       dx = t.clientX - startX;
       const dy = t.clientY - startY;
-      if(!horizontal && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 6){ horizontal = true; }
-      if(horizontal && dx < 0){
-        row.style.transform = `translateX(${Math.max(dx, -84)}px)`;
+      if(!horizontal && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8){ horizontal = true; top.classList.add('dragging'); }
+      if(horizontal){
+        const base = isOpen ? -OPEN : 0;
+        row.style.transform = 'translateX(' + Math.min(0, Math.max(-OPEN, base + dx)) + 'px)';
       }
     }, { passive: true });
-    row.addEventListener('touchend', ()=>{
+    top.addEventListener('touchend', ()=>{
       if(!tracking) return;
       tracking = false;
-      row.style.transition = 'transform .2s ease';
-      row.style.transform = 'translateX(0)';
-      if(horizontal && dx < -50){
-        openReschedule(e.id, row);
-      }
+      row.style.transition = '';
+      if(!horizontal) return;
+      isOpen = ((isOpen ? -OPEN : 0) + dx) < -OPEN / 2;
+      row.style.transform = isOpen ? 'translateX(-' + OPEN + 'px)' : '';
+      top.classList.toggle('swiped', isOpen);
+      if(isOpen) top.classList.remove('dragging');
+      else setTimeout(()=> top.classList.remove('dragging'), 220);
     });
   }
 
@@ -2219,77 +1606,40 @@
 
   function renderAgenda(){
     const list = document.getElementById('agendaList');
-    const label = document.getElementById('agendaLabel');
-    const count = document.getElementById('agendaCount');
     list.innerHTML = '';
-
-    const dayEntries = entriesFor(selectedDate);
-    label.textContent = focusMode ? "TODAY'S AGENDA" : 'ENTRIES';
-
     const nowStr = fmt(todayDate);
-    const overdueEntries = focusMode
-      ? entries.filter(e => e.type==='task' && !e.done && !e.deletedAt && e.date < nowStr).sort((a,b)=>a.date.localeCompare(b.date))
+    const dayEntries = entriesFor(selectedDate);
+    const overdue = focusMode
+      ? entries.filter(e => e.type === 'task' && !e.done && !e.deletedAt && e.date < nowStr).sort((a,b)=> a.date.localeCompare(b.date))
       : [];
-
-    if(focusMode){
-      const doneCount = dayEntries.filter(e=>e.type==='task' && e.done).length;
-      const taskCount = dayEntries.filter(e=>e.type==='task').length;
-      count.textContent = taskCount ? `${doneCount} / ${taskCount} done` : '';
-    } else {
-      count.textContent = dayEntries.length ? `${dayEntries.length}` : '';
+    const actionable = dayEntries.filter(e => e.type === 'task' || e.type === 'chore');
+    setProgress('agenda', actionable.filter(e => e.done).length, actionable.length);
+    const label = (txt, cls)=>{
+      const g = document.createElement('div');
+      g.className = 'group-label' + (cls ? ' ' + cls : '');
+      g.textContent = txt;
+      list.appendChild(g);
+    };
+    if(overdue.length){
+      label('Carried over (' + overdue.length + ')', 'carried');
+      overdue.forEach(e => list.appendChild(buildEntryRow(e, { showDate: true })));
     }
-
-    if(overdueEntries.length){
-      const gl = document.createElement('div');
-      gl.className = 'group-label';
-      gl.textContent = `Carried over (${overdueEntries.length})`;
-      list.appendChild(gl);
-      overdueEntries.forEach(e => list.appendChild(buildEntryRow(e, { showDate: true })));
-    }
-
     if(!dayEntries.length){
-      if(overdueEntries.length){
-        const gl2 = document.createElement('div');
-        gl2.className = 'group-label upcoming';
-        gl2.textContent = 'Today';
-        list.appendChild(gl2);
-      }
-      const empty = document.createElement('div');
-      empty.className = 'empty-state';
-      empty.textContent = 'Nothing here yet.';
-      list.appendChild(empty);
+      if(overdue.length) label('Today');
+      list.appendChild(selectedDate === nowStr ? emptyState('circle-check', 'All clear. Enjoy the day.') : emptyState('calendar', 'Nothing planned for this day.'));
       return;
     }
-
-    if(overdueEntries.length){
-      const gl2 = document.createElement('div');
-      gl2.className = 'group-label upcoming';
-      gl2.textContent = 'Today';
-      list.appendChild(gl2);
-    }
-
+    if(overdue.length) label('Today');
     dayEntries.forEach(e => list.appendChild(buildEntryRow(e, { showDate: false })));
   }
 
   function closeForms(){
-    document.getElementById('noteForm').classList.remove('open');
-    document.getElementById('taskForm').classList.remove('open');
-    document.getElementById('noteText').value = '';
-    document.getElementById('noteTags').value = '';
-    document.getElementById('taskText').value = '';
-    document.getElementById('taskTime').value = '';
-    document.getElementById('taskDate').value = selectedDate;
-    document.getElementById('taskRecur').value = '';
-    document.getElementById('taskTags').value = '';
-    document.getElementById('noteSave').classList.add('disabled');
-    document.getElementById('taskSave').classList.add('disabled');
     closePopovers();
   }
 
   function renderAll(){
     closePopovers();
     refreshTagSuggestions();
-    document.getElementById('layout').className = 'layout' + (focusMode ? ' focused' : '');
     updateCalendarDisclosure();
     renderMonthLabel();
     renderGrid();
@@ -2309,33 +1659,25 @@
     closePopovers();
     refreshTagSuggestions();
     const nowStr = fmt(todayDate);
-    document.getElementById('todoDateSub').textContent = niceDate(nowStr);
 
-    // Tag filter row
     const allTags = getAllTags();
     const filterRow = document.getElementById('tagFilterRow');
-    const manageBtn = document.getElementById('manageTagsBtn');
     if(allTags.length){
       filterRow.style.display = '';
-      manageBtn.style.display = '';
       filterRow.innerHTML = '';
-      const allBtn = document.createElement('button');
-      allBtn.className = 'tag-chip' + (activeTagFilter === null ? ' active' : '');
-      allBtn.setAttribute('aria-pressed', String(activeTagFilter === null));
-      allBtn.textContent = 'All';
-      allBtn.addEventListener('click', ()=>{ activeTagFilter = null; renderTodoView(); });
-      filterRow.appendChild(allBtn);
-      allTags.forEach(t=>{
-        const btn = document.createElement('button');
-        btn.className = 'tag-chip' + (activeTagFilter === t ? ' active' : '');
-        btn.setAttribute('aria-pressed', String(activeTagFilter === t));
-        btn.textContent = t;
-        btn.addEventListener('click', ()=>{ activeTagFilter = t; renderTodoView(); });
-        filterRow.appendChild(btn);
-      });
+      const mkChip = (label, active, onClick)=>{
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'tag-chip' + (active ? ' active' : '');
+        b.textContent = label;
+        b.setAttribute('aria-pressed', String(active));
+        b.addEventListener('click', onClick);
+        filterRow.appendChild(b);
+      };
+      mkChip('All', activeTagFilter === null, ()=>{ activeTagFilter = null; renderTodoView(); });
+      allTags.forEach(t => mkChip(t, activeTagFilter === t, ()=>{ activeTagFilter = t; renderTodoView(); }));
     } else {
       filterRow.style.display = 'none';
-      manageBtn.style.display = 'none';
       activeTagFilter = null;
     }
     const tagMatch = (e) => !activeTagFilter || (Array.isArray(e.tags) && e.tags.some(t => t.toLowerCase() === activeTagFilter.toLowerCase()));
@@ -2350,126 +1692,50 @@
       });
     const choreList = document.getElementById('choreList');
     choreList.innerHTML = '';
-    if(!chores.length){
-      const empty = document.createElement('div');
-      empty.className = 'empty-state';
-      empty.textContent = 'No chores on the chart. Add one above.';
-      choreList.appendChild(empty);
-    } else {
-      chores.forEach(e => choreList.appendChild(buildEntryRow(e, {})));
-    }
-    const choreDone = chores.filter(e=>e.done).length;
-    document.getElementById('choreCount').textContent = chores.length ? `${choreDone} / ${chores.length} done` : '';
+    if(!chores.length) choreList.appendChild(emptyState('circle-check', 'No chores — add your first must-do.'));
+    else chores.forEach(e => choreList.appendChild(buildEntryRow(e, {})));
+    setProgress('chore', chores.filter(e => e.done).length, chores.length);
 
-    // Today's reminders + carried-over overdue reminders (auto-rolled forward like chores)
+    // Today's reminders + carried-over overdue reminders
     const reminders = entries
       .filter(e => e.type === 'task' && !e.deletedAt && (e.date === nowStr || (!e.done && e.date < nowStr)))
       .filter(tagMatch)
       .sort((a,b)=>{
         if(a.date !== b.date) return a.date.localeCompare(b.date);
-        return (a.time||'99:99').localeCompare(b.time||'99:99');
+        return (a.time || '99:99').localeCompare(b.time || '99:99');
       });
     const reminderList = document.getElementById('reminderList');
     reminderList.innerHTML = '';
-    if(!reminders.length){
-      const empty = document.createElement('div');
-      empty.className = 'empty-state';
-      empty.textContent = 'No reminders set for today.';
-      reminderList.appendChild(empty);
-    } else {
-      reminders.forEach(e => reminderList.appendChild(buildEntryRow(e, { showDate: e.date !== nowStr })));
-    }
-    const reminderDone = reminders.filter(e=>e.done).length;
-    document.getElementById('reminderCount').textContent = reminders.length ? `${reminderDone} / ${reminders.length} done` : '';
+    if(!reminders.length) reminderList.appendChild(emptyState('circle-check', 'All clear. Enjoy the day.'));
+    else reminders.forEach(e => reminderList.appendChild(buildEntryRow(e, { showDate: e.date !== nowStr })));
+    setProgress('reminder', reminders.filter(e => e.done).length, reminders.length);
 
     // Notes
-    let notes = entries.filter(e => e.type === 'note' && !e.deletedAt).filter(tagMatch).sort((a,b)=>b.createdAt - a.createdAt);
+    let notes = entries.filter(e => e.type === 'note' && !e.deletedAt).filter(tagMatch).sort((a,b)=> b.createdAt - a.createdAt);
     if(notesFilterText){
       const q = notesFilterText.toLowerCase();
       notes = notes.filter(e => e.text.toLowerCase().includes(q));
     }
-    document.getElementById('notesCount').textContent = notes.length ? `${notes.length}` : '';
+    document.getElementById('notesCount').textContent = notes.length ? notes.length + (notes.length === 1 ? ' note' : ' notes') : '';
     const visibleNotes = notesShowAllFlag ? notes : notes.slice(0, 6);
     const notesList = document.getElementById('notesList');
     notesList.innerHTML = '';
     if(!notes.length){
-      const empty = document.createElement('div');
-      empty.className = 'empty-state';
-      empty.textContent = notesFilterText ? 'No notes match that search.' : 'No notes yet.';
-      notesList.appendChild(empty);
+      notesList.appendChild(notesFilterText ? emptyState('search', 'No notes match that search.') : emptyState('file-text', 'No notes yet. Tap Add to jot one down.'));
     } else {
       visibleNotes.forEach(e => notesList.appendChild(buildNoteRow(e)));
     }
     const showAllBtn = document.getElementById('notesShowAll');
     if(notes.length > 6 && !notesShowAllFlag){
       showAllBtn.style.display = '';
-      showAllBtn.textContent = `Show all ${notes.length} notes`;
+      showAllBtn.textContent = 'Show all ' + notes.length + ' notes';
     } else {
       showAllBtn.style.display = 'none';
     }
   }
 
   function buildNoteRow(e){
-    const row = document.createElement('div');
-    row.className = 'note-row';
-    const marker = document.createElement('div');
-    marker.className = 'marker note-marker';
-    marker.setAttribute('aria-hidden', 'true');
-    row.appendChild(marker);
-
-    const body = document.createElement('div');
-    body.className = 'entry-body';
-    const text = document.createElement('div');
-    text.className = 'entry-text';
-    text.textContent = e.text;
-    body.appendChild(text);
-    const meta = document.createElement('div');
-    meta.className = 'entry-meta';
-    const dateSpan = document.createElement('span');
-    const nowStr = fmt(todayDate);
-    dateSpan.textContent = e.date === nowStr ? 'today' : shortDate(e.date);
-    meta.appendChild(dateSpan);
-    if(!Array.isArray(e.tags)) e.tags = [];
-    e.tags.forEach(t=>{
-      const pill = document.createElement('span');
-      pill.className = 'tag-chip tag-pill-display';
-      pill.textContent = '#' + t;
-      meta.appendChild(pill);
-    });
-    const tagBtn = document.createElement('button');
-    tagBtn.type = 'button';
-    tagBtn.className = 'entry-tag-btn';
-    tagBtn.textContent = '+ tag';
-    tagBtn.addEventListener('click', (ev)=>{
-      ev.stopPropagation();
-      const key = 'tag:' + e.id;
-      if(openPopoverKey === key){ closePopovers(); refreshUI(); return; }
-      openTagPicker(e.id, row);
-    });
-    meta.appendChild(tagBtn);
-    body.appendChild(meta);
-    row.appendChild(body);
-
-    const editBtn = document.createElement('button');
-    editBtn.className = 'restore-btn';
-    editBtn.textContent = 'Edit';
-    editBtn.title = 'Edit note';
-    editBtn.addEventListener('click', (ev)=>{
-      ev.stopPropagation();
-      const key = 'edit:' + e.id;
-      if(openPopoverKey === key){ closePopovers(); return; }
-      openNoteEditor(e.id, row);
-    });
-    row.appendChild(editBtn);
-
-    const del = document.createElement('button');
-    del.className = 'entry-del';
-    del.innerHTML = '&times;';
-    del.title = 'Delete';
-    del.addEventListener('click', ()=>{ softDelete(e); });
-    row.appendChild(del);
-    labelRowActions(row, e);
-    return row;
+    return buildEntryRow(e, { showNoteDate: true });
   }
 
   // ---- Share ----
@@ -2588,24 +1854,29 @@
 
   function buildArchiveRow(e, kind, now){
     const ts = kind === 'completed' ? e.completedAt : e.deletedAt;
-    const daysLeft = Math.max(0, 30 - Math.floor((now - ts) / (24*60*60*1000)));
-    const row = document.createElement('div');
-    row.className = 'archive-row';
-
-    const text = document.createElement('div');
-    text.className = 'archive-text';
+    const daysLeft = Math.max(0, 30 - Math.floor((now - ts) / (24 * 60 * 60 * 1000)));
+    const card = document.createElement('div');
+    card.className = 'entry archive-card t-' + e.type;
+    const bodyEl = document.createElement('div');
+    bodyEl.className = 'archive-body';
+    const text = document.createElement('span');
+    text.className = 'entry-text';
     text.textContent = e.text;
-    row.appendChild(text);
-
-    const meta = document.createElement('div');
-    meta.className = 'archive-meta';
+    bodyEl.appendChild(text);
+    const meta = document.createElement('span');
+    meta.className = 'entry-meta';
     const tagsStr = (Array.isArray(e.tags) && e.tags.length) ? ' · ' + e.tags.map(t => '#' + t).join(' ') : '';
     const purgeOn = fmt(new Date(ts + THIRTY_DAYS));
     meta.textContent = `${e.type}${tagsStr} · ${kind === 'completed' ? 'completed' : 'deleted'} ${shortDate(fmt(new Date(ts)))} · purges ${shortDate(purgeOn)} (${daysLeft}d left)`;
-    row.appendChild(meta);
+    bodyEl.appendChild(meta);
+    card.appendChild(bodyEl);
 
+    const actions = document.createElement('div');
+    actions.className = 'archive-actions';
     const restoreBtn = document.createElement('button');
-    restoreBtn.textContent = 'Restore';
+    restoreBtn.type = 'button';
+    restoreBtn.className = 'action-btn';
+    restoreBtn.innerHTML = ic('refresh') + '<span>Restore</span>';
     restoreBtn.setAttribute('aria-label', 'Restore: ' + e.text);
     restoreBtn.addEventListener('click', async ()=>{
       if(kind === 'completed'){ e.done = false; e.completedAt = null; }
@@ -2616,11 +1887,10 @@
       updateArchiveBadge();
       refreshUI();
     });
-    row.appendChild(restoreBtn);
-
     const forgetBtn = document.createElement('button');
-    forgetBtn.className = 'danger';
-    forgetBtn.textContent = 'Delete forever';
+    forgetBtn.type = 'button';
+    forgetBtn.className = 'action-btn danger';
+    forgetBtn.innerHTML = ic('trash') + '<span>Delete forever</span>';
     forgetBtn.setAttribute('aria-label', 'Delete forever: ' + e.text);
     forgetBtn.addEventListener('click', async ()=>{
       if(!confirm('Delete this permanently? This can\'t be undone.')) return;
@@ -2629,44 +1899,30 @@
       renderArchiveModal();
       updateArchiveBadge();
     });
-    row.appendChild(forgetBtn);
-
-    return row;
+    actions.appendChild(restoreBtn);
+    actions.appendChild(forgetBtn);
+    card.appendChild(actions);
+    return card;
   }
 
   function renderArchiveModal(){
     const now = Date.now();
     reconcileLifetime();
     document.getElementById('lifetimeCompletedLine').textContent = `Lifetime completed: ${getLifetimeCompleted()}`;
-    const completed = entries.filter(e => !e.deletedAt && e.done && e.completedAt).sort((a,b)=>b.completedAt - a.completedAt);
-    const deleted = entries.filter(e => e.deletedAt).sort((a,b)=>b.deletedAt - a.deletedAt);
-
+    const completed = entries.filter(e => !e.deletedAt && e.done && e.completedAt).sort((a,b)=> b.completedAt - a.completedAt);
+    const deleted = entries.filter(e => e.deletedAt).sort((a,b)=> b.deletedAt - a.deletedAt);
+    document.getElementById('completedCount').textContent = completed.length ? String(completed.length) : '';
+    document.getElementById('deletedCount').textContent = deleted.length ? String(deleted.length) : '';
     const cWrap = document.getElementById('archiveCompletedList');
     cWrap.innerHTML = '';
-    if(!completed.length){
-      cWrap.innerHTML = '<div class="empty-state">Nothing completed recently.</div>';
-    } else {
-      completed.forEach(e => cWrap.appendChild(buildArchiveRow(e, 'completed', now)));
-    }
-
+    if(!completed.length) cWrap.appendChild(emptyState('circle-check', 'Nothing completed yet.'));
+    else completed.forEach(e => cWrap.appendChild(buildArchiveRow(e, 'completed', now)));
     const dWrap = document.getElementById('archiveDeletedList');
     dWrap.innerHTML = '';
-    if(!deleted.length){
-      dWrap.innerHTML = '<div class="empty-state">Trash is empty.</div>';
-    } else {
-      deleted.forEach(e => dWrap.appendChild(buildArchiveRow(e, 'deleted', now)));
-    }
+    if(!deleted.length) dWrap.appendChild(emptyState('trash', 'Trash is empty.'));
+    else deleted.forEach(e => dWrap.appendChild(buildArchiveRow(e, 'deleted', now)));
   }
 
-  async function openArchiveModal(){
-    if(cleanupExpired()){ await saveEntries(); }
-    renderArchiveModal();
-    updateArchiveBadge();
-    document.getElementById('archiveModal').classList.add('open');
-  }
-  function closeArchiveModal(){
-    document.getElementById('archiveModal').classList.remove('open');
-  }
 
   // ---- v2.3.0: toast, delete-with-undo, entry helpers ----
   let toastTimer = null;
@@ -2735,20 +1991,6 @@
     dl.innerHTML = '';
     getAllTags().forEach(t=>{ const o = document.createElement('option'); o.value = t; dl.appendChild(o); });
   }
-  function labelRowActions(row, e){
-    const label = (e.text || '').length > 60 ? e.text.slice(0, 60) + '…' : (e.text || '');
-    row.querySelectorAll('button').forEach(b=>{
-      if(b.hasAttribute('aria-label')) return;
-      const t = b.textContent.trim();
-      if(t === '→ today') b.setAttribute('aria-label', 'Move to today: ' + label);
-      else if(t === '→ later') b.setAttribute('aria-label', 'Reschedule for later: ' + label);
-      else if(t.indexOf('↗') === 0) b.setAttribute('aria-label', 'Show ' + shortDate(e.date) + ' on the calendar');
-      else if(t.indexOf('↻') === 0) b.setAttribute('aria-label', (e.recurring ? 'Repeats ' + e.recurring + ', change repeat: ' : 'Set repeat: ') + label);
-      else if(t === '+ tag') b.setAttribute('aria-label', 'Add or change tags: ' + label);
-      else if(t === 'Edit') b.setAttribute('aria-label', 'Edit note: ' + label);
-      else if(t === '×') b.setAttribute('aria-label', 'Delete: ' + label);
-    });
-  }
 
   // ---- Focus mode UI + calendar disclosure ----
   function setFocusUI(){
@@ -2757,14 +1999,14 @@
   }
   function updateCalendarDisclosure(){
     const btn = document.getElementById('calDisclosure');
-    const body = document.getElementById('calBody');
+    const bodyEl = document.getElementById('calBody');
     const hint = document.getElementById('calFocusHint');
     const open = !focusMode || !!uiState.focusCalOpen;
     btn.style.display = focusMode ? '' : 'none';
-    body.style.display = open ? '' : 'none';
+    bodyEl.style.display = open ? '' : 'none';
     hint.style.display = (focusMode && open) ? '' : 'none';
     btn.setAttribute('aria-expanded', String(open));
-    btn.textContent = open ? 'Hide calendar ▾' : 'Show calendar ▸';
+    btn.querySelector('span').textContent = open ? 'Hide calendar' : 'Show calendar';
   }
   function updateChoreHint(){
     const el = document.getElementById('choreHint');
@@ -2773,7 +2015,7 @@
     y.setDate(y.getDate() - 1);
     const touch = !!(window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches);
     el.textContent = 'No date or time needed — just today\'s must-dos. Unfinished chores automatically roll to tomorrow. Rolled chores show where they came from (e.g. “from ' + shortDate(fmt(y)) + '”). ' +
-      (touch ? 'Swipe left on a row to reschedule it.' : 'Use the → later button on a row to reschedule it.');
+      (touch ? 'Tap a chore for more options, or swipe left on it.' : 'Click a chore to reschedule, repeat, tag or delete it.');
   }
 
   // ---- Notifications for timed reminders (work only while Rally is open in a tab) ----
@@ -2938,152 +2180,114 @@
     renderAll();
   });
 
-  document.getElementById('btnNote').addEventListener('click', ()=>{
-    document.getElementById('taskForm').classList.remove('open');
-    document.getElementById('noteForm').classList.toggle('open');
-    document.getElementById('noteText').focus();
+  // ---- Tab switching (bottom tab bar) ----
+  function switchTab(view){
+    currentView = view;
+    const map = { calendar: ['tabCalendar', 'layout'], todo: ['tabTodo', 'todoView'], archive: ['tabArchive', 'archiveView'] };
+    Object.keys(map).forEach(v=>{
+      const tab = document.getElementById(map[v][0]);
+      const sec = document.getElementById(map[v][1]);
+      tab.classList.toggle('active', v === view);
+      if(v === view) tab.setAttribute('aria-current', 'page'); else tab.removeAttribute('aria-current');
+      sec.style.display = v === view ? '' : 'none';
+      if(v === view){ sec.classList.remove('enter'); void sec.offsetWidth; sec.classList.add('enter'); }
+    });
+    closePopovers();
+    closeActionPanels();
+    updateHeader();
+    if(view === 'calendar'){ renderAll(); }
+    else if(view === 'todo'){ renderTodoView(); }
+    else { if(cleanupExpired()) saveEntries(); renderArchiveModal(); }
+    window.scrollTo(0, 0);
+  }
+  [['tabCalendar', 'calendar'], ['tabTodo', 'todo'], ['tabArchive', 'archive']].forEach(([id, v])=>{
+    document.getElementById(id).addEventListener('click', ()=> switchTab(v));
   });
-  document.getElementById('btnTask').addEventListener('click', ()=>{
-    document.getElementById('noteForm').classList.remove('open');
-    const taskForm = document.getElementById('taskForm');
-    taskForm.classList.toggle('open');
-    if(taskForm.classList.contains('open')){
-      document.getElementById('taskDate').value = selectedDate;
-      refreshTagSuggestions();
-    }
-    document.getElementById('taskText').focus();
-  });
-  document.getElementById('noteCancel').addEventListener('click', closeForms);
-  document.getElementById('taskCancel').addEventListener('click', closeForms);
 
-  document.getElementById('noteSave').addEventListener('click', async ()=>{
-    const val = document.getElementById('noteText').value.trim();
-    if(!val) return;
-    const tags = parseTagsInput(document.getElementById('noteTags').value);
-    entries.push(createEntry('note', { text: val, date: selectedDate, tags }));
+  // ---- Add sheet: one entry point, three choices ----
+  let addType = null;
+  const ADD_TITLES = { chore: 'New chore', task: 'New reminder', note: 'New note' };
+  const ADD_LABELS = { chore: 'What needs doing?', task: 'What should we remind you about?', note: 'What\'s on your mind?' };
+  function showAddStep(step){
+    document.getElementById('addTypeStep').style.display = step === 'choose' ? '' : 'none';
+    document.getElementById('addFormStep').style.display = step === 'form' ? '' : 'none';
+  }
+  function openAddSheet(){
+    addType = null;
+    showAddStep('choose');
+    document.getElementById('addSheet').classList.add('open');
+    setTimeout(()=>{ const b = document.querySelector('#addTypeStep .type-btn'); if(b) b.focus(); }, 60);
+  }
+  function closeAddSheet(){ document.getElementById('addSheet').classList.remove('open'); }
+  function updateAddSave(){ document.getElementById('addSave').disabled = !document.getElementById('addText').value.trim(); }
+  function chooseAddType(type){
+    addType = type;
+    document.getElementById('addFormTitle').textContent = ADD_TITLES[type];
+    document.getElementById('addTextLabel').textContent = ADD_LABELS[type];
+    document.getElementById('addWhen').style.display = type === 'task' ? '' : 'none';
+    document.getElementById('addRecurField').style.display = type === 'note' ? 'none' : '';
+    document.getElementById('addText').value = '';
+    document.getElementById('addTime').value = '';
+    document.getElementById('addRecur').value = '';
+    document.getElementById('addTags').value = '';
+    document.getElementById('addDate').value = currentView === 'calendar' ? selectedDate : fmt(todayDate);
+    refreshTagSuggestions();
+    updateAddSave();
+    showAddStep('form');
+    document.getElementById('addText').focus();
+  }
+  async function saveAdd(){
+    const text = document.getElementById('addText').value.trim();
+    if(!text || !addType) return;
+    const tags = parseTagsInput(document.getElementById('addTags').value);
+    const recurring = document.getElementById('addRecur').value || null;
+    const onCalendar = currentView === 'calendar';
+    const defaultDate = onCalendar ? selectedDate : fmt(todayDate);
+    const visibleDate = onCalendar ? (focusMode ? fmt(todayDate) : selectedDate) : fmt(todayDate);
+    let date = defaultDate, entry;
+    if(addType === 'task'){
+      date = document.getElementById('addDate').value || defaultDate;
+      entry = createEntry('task', { text, date, time: document.getElementById('addTime').value, tags, recurring });
+    } else if(addType === 'chore'){
+      date = fmt(todayDate);
+      entry = createEntry('chore', { text, date, tags, recurring });
+    } else {
+      entry = createEntry('note', { text, date: defaultDate, tags });
+    }
+    entries.push(entry);
     await saveEntries();
-    closeForms();
-    renderAll();
-  });
-  document.getElementById('taskSave').addEventListener('click', async ()=>{
-    const val = document.getElementById('taskText').value.trim();
-    if(!val) return;
-    const date = document.getElementById('taskDate').value || selectedDate;
-    const time = document.getElementById('taskTime').value;
-    const recurring = document.getElementById('taskRecur').value || null;
-    const tags = parseTagsInput(document.getElementById('taskTags').value);
-    entries.push(createEntry('task', { text: val, date, time, tags, recurring }));
-    await saveEntries();
-    const visibleDate = focusMode ? fmt(todayDate) : selectedDate;
-    closeForms();
-    if(date !== visibleDate && !focusMode){
+    closeAddSheet();
+    if(onCalendar && !focusMode && addType === 'task' && date !== selectedDate){
       const d = parseYMD(date);
       selectedDate = date; viewYear = d.getFullYear(); viewMonth = d.getMonth();
     }
-    renderAll();
-    if(date !== visibleDate){
+    refreshUI();
+    if(addType === 'task' && date !== visibleDate){
       showToast('Reminder added for ' + shortDate(date) + (recurring ? ' · repeats ' + recurring : '') + '.');
     }
-  });
-
-  // Enter+Cmd/Ctrl to save quickly
-  document.getElementById('noteText').addEventListener('keydown', (ev)=>{
-    if(ev.key === 'Enter' && (ev.metaKey || ev.ctrlKey)) document.getElementById('noteSave').click();
-  });
-  document.getElementById('taskText').addEventListener('keydown', (ev)=>{
-    if(ev.key === 'Enter' && (ev.metaKey || ev.ctrlKey)) document.getElementById('taskSave').click();
-  });
-
-  // Toggle save-button contrast based on whether there's text to save
-  document.getElementById('noteText').addEventListener('input', (ev)=>{
-    document.getElementById('noteSave').classList.toggle('disabled', !ev.target.value.trim());
-  });
-  document.getElementById('taskText').addEventListener('input', (ev)=>{
-    document.getElementById('taskSave').classList.toggle('disabled', !ev.target.value.trim());
-  });
-
-  // Guard against saving empty entries via click when disabled
-  document.getElementById('noteSave').addEventListener('click', (ev)=>{
-    if(ev.currentTarget.classList.contains('disabled')){ ev.stopImmediatePropagation(); }
-  }, true);
-  document.getElementById('taskSave').addEventListener('click', (ev)=>{
-    if(ev.currentTarget.classList.contains('disabled')){ ev.stopImmediatePropagation(); }
-  }, true);
-
-  // ---- Tab switching ----
-  function switchTab(view){
-    currentView = view;
-    document.getElementById('tabCalendar').classList.toggle('active', view === 'calendar');
-    document.getElementById('tabTodo').classList.toggle('active', view === 'todo');
-    document.getElementById('layout').style.display = view === 'calendar' ? '' : 'none';
-    document.getElementById('todoView').style.display = view === 'todo' ? 'block' : 'none';
-    document.getElementById('focusToggle').style.display = view === 'calendar' ? '' : 'none';
-    closePopovers();
-    if(view === 'calendar'){ closeForms(); renderAll(); }
-    else { renderTodoView(); }
   }
-  document.getElementById('tabCalendar').addEventListener('click', ()=> switchTab('calendar'));
-  document.getElementById('tabTodo').addEventListener('click', ()=> switchTab('todo'));
+  document.getElementById('addBtn').addEventListener('click', openAddSheet);
+  document.querySelectorAll('#addTypeStep .type-btn').forEach(b => b.addEventListener('click', ()=> chooseAddType(b.dataset.type)));
+  document.getElementById('addBack').addEventListener('click', ()=> showAddStep('choose'));
+  document.getElementById('addCancel').addEventListener('click', closeAddSheet);
+  document.getElementById('addSave').addEventListener('click', saveAdd);
+  document.getElementById('addText').addEventListener('input', updateAddSave);
+  document.getElementById('addText').addEventListener('keydown', (ev)=>{
+    if(ev.key === 'Enter' && (ev.metaKey || ev.ctrlKey)){ ev.preventDefault(); saveAdd(); }
+  });
+  document.getElementById('addSheet').addEventListener('click', (ev)=>{ if(ev.target.id === 'addSheet') closeAddSheet(); });
 
-  // ---- Todo view: inline add rows ----
-  function wireInlineAdd(inputId, btnId, onAdd){
-    const input = document.getElementById(inputId);
-    const btn = document.getElementById(btnId);
-    input.addEventListener('input', ()=> btn.classList.toggle('enabled', !!input.value.trim()));
-    btn.addEventListener('click', async ()=>{
-      const val = input.value.trim();
-      if(!val) return;
-      await onAdd(val);
-      input.value = '';
-      btn.classList.remove('enabled');
-      input.focus();
-    });
-    input.addEventListener('keydown', async (ev)=>{
-      if(ev.key === 'Enter'){
-        const val = input.value.trim();
-        if(!val) return;
-        await onAdd(val);
-        input.value = '';
-        btn.classList.remove('enabled');
-      }
-    });
+  // ---- Settings sheet ----
+  function openSettings(){
+    updateNotifyUI();
+    updateSyncUI();
+    document.getElementById('settingsSheet').classList.add('open');
   }
-
-  wireInlineAdd('choreInput', 'choreAddBtn', async (val)=>{
-    const recurring = document.getElementById('choreRecur').value || null;
-    const tags = parseTagsInput(document.getElementById('choreTags').value);
-    entries.push(createEntry('chore', { text: val, date: fmt(todayDate), tags, recurring }));
-    document.getElementById('choreRecur').value = '';
-    document.getElementById('choreTags').value = '';
-    await saveEntries();
-    refreshUI();
-  });
-  wireInlineAdd('reminderInput', 'reminderAddBtn', async (val)=>{
-    const time = document.getElementById('reminderTimeInput').value;
-    const recurring = document.getElementById('reminderRecur').value || null;
-    const tags = parseTagsInput(document.getElementById('reminderTags').value);
-    entries.push(createEntry('task', { text: val, date: fmt(todayDate), time, tags, recurring }));
-    document.getElementById('reminderTimeInput').value = '';
-    document.getElementById('reminderRecur').value = '';
-    document.getElementById('reminderTags').value = '';
-    await saveEntries();
-    refreshUI();
-  });
-  wireInlineAdd('noteInlineInput', 'noteAddBtn', async (val)=>{
-    const tags = parseTagsInput(document.getElementById('noteInlineTags').value);
-    entries.push(createEntry('note', { text: val, date: fmt(todayDate), tags }));
-    document.getElementById('noteInlineTags').value = '';
-    await saveEntries();
-    refreshUI();
-  });
-  [['choreTags', 'choreAddBtn', 'choreInput'], ['reminderTags', 'reminderAddBtn', 'reminderInput'], ['noteInlineTags', 'noteAddBtn', 'noteInlineInput']].forEach(([tagId, btnId, inputId])=>{
-    document.getElementById(tagId).addEventListener('keydown', (ev)=>{
-      if(ev.key === 'Enter'){
-        ev.preventDefault();
-        if(document.getElementById(inputId).value.trim()) document.getElementById(btnId).click();
-      }
-    });
-  });
+  function closeSettings(){ document.getElementById('settingsSheet').classList.remove('open'); }
+  document.getElementById('settingsBtn').addEventListener('click', openSettings);
+  document.getElementById('closeSettingsBtn').addEventListener('click', closeSettings);
+  document.getElementById('settingsSheet').addEventListener('click', (ev)=>{ if(ev.target.id === 'settingsSheet') closeSettings(); });
+  ['syncBtn', 'manageTagsBtn', 'importBtn', 'shareBtn'].forEach(id => document.getElementById(id).addEventListener('click', closeSettings));
 
   document.getElementById('notesFilter').addEventListener('input', (ev)=>{
     notesFilterText = ev.target.value.trim();
@@ -3111,13 +2315,6 @@
     }catch(err){
       ta.focus(); ta.select();
     }
-  });
-
-  // ---- Archive modal wiring ----
-  document.getElementById('archiveBtn').addEventListener('click', openArchiveModal);
-  document.getElementById('closeArchiveBtn').addEventListener('click', closeArchiveModal);
-  document.getElementById('archiveModal').addEventListener('click', (ev)=>{
-    if(ev.target.id === 'archiveModal') closeArchiveModal();
   });
 
   // ---- Import modal wiring ----
@@ -3259,17 +2456,16 @@
   const uiState = loadUiState();
   document.querySelectorAll('.collapse-btn').forEach(btn=>{
     const target = btn.dataset.target;
-    const body = document.getElementById(target);
-    const name = btn.closest('.todo-section').querySelector('h2').textContent;
+    const bodyEl = document.getElementById(target);
+    const name = btn.querySelector('.section-label').textContent;
     const apply = (collapsed)=>{
-      body.style.display = collapsed ? 'none' : '';
-      btn.textContent = collapsed ? '▸' : '▾';
+      bodyEl.classList.toggle('closed', collapsed);
       btn.setAttribute('aria-expanded', String(!collapsed));
       btn.setAttribute('aria-label', (collapsed ? 'Expand ' : 'Collapse ') + name);
     };
     apply(!!uiState[target]);
     btn.addEventListener('click', ()=>{
-      const collapsedNow = body.style.display !== 'none';
+      const collapsedNow = !bodyEl.classList.contains('closed');
       apply(collapsedNow);
       uiState[target] = collapsedNow;
       saveUiState(uiState);
@@ -3292,8 +2488,8 @@
     if(on) playChime();
   });
 
-  // ---- Keyboard support for switch-style controls; Escape closes dialogs ----
-  ['focusToggle', 'notifyToggle', 'soundToggle'].forEach(id=>{
+  // ---- Keyboard support for switch-style controls; Escape closes sheets ----
+  ['themeToggle', 'focusToggle', 'notifyToggle', 'soundToggle'].forEach(id=>{
     document.getElementById(id).addEventListener('keydown', (ev)=>{
       if(ev.key === ' ' || ev.key === 'Enter'){ ev.preventDefault(); ev.currentTarget.click(); }
     });
@@ -3318,6 +2514,7 @@
     await loadEntries();
     refreshTagSuggestions();
     updateArchiveBadge();
+    updateHeader();
     renderAll();
     updateNotifyUI();
     checkReminders();
@@ -3325,6 +2522,9 @@
     if(isSyncConfigured()){
       startSyncLoop();
       syncNow();
+    }
+    if('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
+      navigator.serviceWorker.register('./sw.js').catch(()=>{});
     }
   })();
 })();
