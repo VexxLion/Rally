@@ -10,8 +10,8 @@
 <meta name="apple-mobile-web-app-title" content="Rally">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="manifest.json">
-<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <script src="https://cdn.ably.com/lib/ably.min-2.js"></script>
 <style>
   /* =========================================================
@@ -136,7 +136,7 @@
   .progress-cap{ font-size:12.5px; color:var(--ink-3); margin-top:4px; }
   .agenda-list{ display:flex; flex-direction:column; }
   .group-label{ font-size:12.5px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-2); margin:6px 0 8px; }
-  .group-label.carried{ color:var(--danger); }
+  .group-label.carried{ color:var(--ink-2); }
   .empty-state{ display:flex; flex-direction:column; align-items:center; gap:8px; padding:26px 16px; color:var(--ink-3); text-align:center; font-size:15px; }
   .show-all-link{ min-height:44px; padding:0 4px; color:var(--accent); font-weight:600; }
   .search{ position:relative; margin:0 0 12px; }
@@ -173,7 +173,7 @@
   .entry-text{ display:block; overflow-wrap:anywhere; }
   .entry-meta{ display:flex; flex-wrap:wrap; gap:2px 10px; margin-top:2px; font-size:12.5px; color:var(--ink-3); }
   .entry-meta .m{ display:inline-flex; align-items:center; gap:4px; }
-  .entry-meta .m-danger{ color:var(--danger); font-weight:600; }
+  .entry-meta .m-danger{ color:var(--ink-2); }
   .entry-meta .m-tag{ color:var(--ink-2); }
   .dot-type{ width:7px; height:7px; border-radius:50%; background:var(--c); display:inline-block; }
   .chev{ color:var(--ink-3); margin-top:2px; transition:transform .2s var(--ease); }
@@ -610,11 +610,12 @@
 <script>
 (function(){
   const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  const APP_VERSION = '2.4.0';
+  const APP_VERSION = '2.4.1';
   let entries = [];
   let viewYear, viewMonth;
   let selectedDate = fmt(new Date());
   let focusMode = true;
+  let focusCalPeek = false; // session-only: "Show calendar" peek while Focus is ON; never persisted
   let currentView = 'calendar';
   let notesShowAllFlag = false;
   let notesFilterText = '';
@@ -659,6 +660,7 @@
   const STORAGE_KEY = 'rally.entries.v1';
   const UI_KEY = 'rally.ui.v1';
   const THEME_KEY = 'rally.theme';
+  const FOCUS_KEY = 'rally.focus';
   const LIFETIME_KEY = 'rally.lifetimeCompleted';
   const SYNC_APIKEY_KEY = 'rally.sync.apiKey';
   const SYNC_BINID_KEY = 'rally.sync.binId';
@@ -667,6 +669,9 @@
   const DEVICE_ID_KEY = 'rally.deviceId';
   const JSONBIN_BASE = 'https://api.jsonbin.io/v3/b';
   const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+
+  // Focus mode persists across reloads (default ON, matching first-run behavior).
+  try{ const savedFocus = localStorage.getItem(FOCUS_KEY); if(savedFocus !== null) focusMode = savedFocus === '1'; }catch(e){}
 
   async function loadEntries(){
     try{
@@ -1034,7 +1039,7 @@
     });
   }
 
-  // ---- Lifetime completed counter (survives 30-day archive purge) ----
+  // ---- Lifetime completed counter (survives 30-day archive removal) ----
   // Stored as { base, devices:{deviceId:n} } so counts from several devices add up correctly
   // when synced (base and each device counter merge by max).
   const LIFETIME_V2_KEY = 'rally.lifetime.v2';
@@ -1166,7 +1171,12 @@
       cell.setAttribute('aria-pressed', String(dStr === selectedDate));
       cell.setAttribute('aria-label', niceDate(dStr) + (dStr === fmt(todayDate) ? ', today' : '') + (dayCount ? `, ${dayCount} ${dayCount === 1 ? 'item' : 'items'}` : ''));
       const pickDay = ()=>{
-        if(focusMode && dStr !== fmt(todayDate)){ focusMode = false; setFocusUI(); }
+        if(focusMode && dStr !== fmt(todayDate)){
+          focusMode = false;
+          saveFocusMode();
+          setFocusUI();
+          showToast('Focus mode off — viewing ' + shortDate(dStr) + '.');
+        }
         selectedDate = dStr; closeForms(); renderAll();
       };
       cell.addEventListener('click', pickDay);
@@ -1430,8 +1440,12 @@
     selectedDate = dateStr;
     viewYear = d.getFullYear();
     viewMonth = d.getMonth();
-    focusMode = false;
-    setFocusUI();
+    if(focusMode && dateStr !== fmt(todayDate)){
+      focusMode = false;
+      saveFocusMode();
+      setFocusUI();
+      showToast('Focus mode off — viewing ' + shortDate(dateStr) + '.');
+    }
     switchTab('calendar');
   }
 
@@ -1867,7 +1881,7 @@
     meta.className = 'entry-meta';
     const tagsStr = (Array.isArray(e.tags) && e.tags.length) ? ' · ' + e.tags.map(t => '#' + t).join(' ') : '';
     const purgeOn = fmt(new Date(ts + THIRTY_DAYS));
-    meta.textContent = `${e.type}${tagsStr} · ${kind === 'completed' ? 'completed' : 'deleted'} ${shortDate(fmt(new Date(ts)))} · purges ${shortDate(purgeOn)} (${daysLeft}d left)`;
+    meta.textContent = `${e.type}${tagsStr} · ${kind === 'completed' ? 'completed' : 'deleted'} ${shortDate(fmt(new Date(ts)))} · removed ${shortDate(purgeOn)} (${daysLeft}d left)`;
     bodyEl.appendChild(meta);
     card.appendChild(bodyEl);
 
@@ -1993,6 +2007,7 @@
   }
 
   // ---- Focus mode UI + calendar disclosure ----
+  function saveFocusMode(){ try{ localStorage.setItem(FOCUS_KEY, focusMode ? '1' : '0'); }catch(e){} }
   function setFocusUI(){
     document.getElementById('focusSwitch').classList.toggle('on', focusMode);
     document.getElementById('focusToggle').setAttribute('aria-checked', String(focusMode));
@@ -2001,7 +2016,9 @@
     const btn = document.getElementById('calDisclosure');
     const bodyEl = document.getElementById('calBody');
     const hint = document.getElementById('calFocusHint');
-    const open = !focusMode || !!uiState.focusCalOpen;
+    // Focus ON means "only today": the grid stays collapsed unless the user
+    // peeks with "Show calendar" (session-only, never persisted).
+    const open = !focusMode || focusCalPeek;
     btn.style.display = focusMode ? '' : 'none';
     bodyEl.style.display = open ? '' : 'none';
     hint.style.display = (focusMode && open) ? '' : 'none';
@@ -2175,6 +2192,8 @@
 
   document.getElementById('focusToggle').addEventListener('click', ()=>{
     focusMode = !focusMode;
+    focusCalPeek = false; // turning Focus on collapses the grid again
+    saveFocusMode();
     setFocusUI();
     closeForms();
     renderAll();
@@ -2474,8 +2493,7 @@
 
   // ---- Calendar disclosure (Focus mode) ----
   document.getElementById('calDisclosure').addEventListener('click', ()=>{
-    uiState.focusCalOpen = !uiState.focusCalOpen;
-    saveUiState(uiState);
+    focusCalPeek = !focusCalPeek;
     updateCalendarDisclosure();
   });
 
